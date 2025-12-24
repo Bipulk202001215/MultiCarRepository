@@ -6,7 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { getJobCard, updateJobCard, searchVehicle } from '@/lib/jobService';
-import { ServiceType, JobDescription, JobStatus } from '@/lib/types';
+import { ServiceType, JobDescription, JobStatus, CreateJobCardData } from '@/lib/types';
 
 const SERVICE_TYPES: ServiceType[] = [
   'Periodic',
