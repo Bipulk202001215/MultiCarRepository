@@ -1,74 +1,73 @@
 'use client';
 
-import Image from "next/image";
-import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, userData, userRole, loading } = useAuth();
+  const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Failed to logout:', error);
+  useEffect(() => {
+    if (!loading && !currentUser) {
+      router.push('/login');
     }
-  };
+  }, [currentUser, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return null;
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <div className="flex w-full items-center justify-between">
-          <Image
-            className="dark:invert"
-            src="/next.svg"
-            alt="Next.js logo"
-            width={100}
-            height={20}
-            priority
-          />
-          {currentUser ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                {currentUser.displayName || currentUser.email}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-            >
-              Login
-            </Link>
-          )}
-        </div>
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            {currentUser ? `Welcome, ${currentUser.displayName || 'User'}!` : 'Welcome to Multi Car Repair'}
+    <DashboardLayout>
+      <div className="p-8">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+            Welcome, {userData?.displayName || currentUser.displayName || 'User'}!
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            {currentUser 
-              ? 'You are successfully logged in with Firebase Authentication.'
-              : 'Please sign in to continue.'}
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+            Dashboard - Multi Car Repair Management System
           </p>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
+              <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                Quick Actions
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                Access frequently used features
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
+              <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                Recent Jobs
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                View and manage job cards
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
+              <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                Statistics
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                View system statistics
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          {!currentUser && (
-            <Link
-              href="/login"
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            >
-              Get Started
-            </Link>
-          )}
-        </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
