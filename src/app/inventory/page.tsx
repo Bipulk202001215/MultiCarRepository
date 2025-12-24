@@ -14,6 +14,7 @@ import {
   getAllSuppliers,
 } from '@/lib/inventoryService';
 import { Part, CreatePartData, PartCategory, GSTSlab, Supplier } from '@/lib/types';
+import { BarcodeScanner } from '@/components/BarcodeScanner';
 
 const PART_CATEGORIES: PartCategory[] = ['OEM', 'OES', 'Local'];
 const GST_SLABS: GSTSlab[] = [5, 18, 28];
@@ -36,6 +37,8 @@ export default function InventoryPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [deletingPart, setDeletingPart] = useState<Part | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedPart, setScannedPart] = useState<Part | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<CreatePartData>({
@@ -95,6 +98,24 @@ export default function InventoryPage() {
       setParts(results);
     } catch (err: any) {
       setError(err.message || 'Search failed');
+    }
+  };
+
+  const handleBarcodeScan = async (barcode: string) => {
+    try {
+      const results = await searchParts(barcode);
+      if (results.length > 0) {
+        setScannedPart(results[0]);
+        setParts(results);
+        setSearchTerm(barcode);
+        setShowScanner(false);
+      } else {
+        setError(`No part found with barcode: ${barcode}`);
+        setShowScanner(false);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to search part by barcode');
+      setShowScanner(false);
     }
   };
 
@@ -249,14 +270,24 @@ export default function InventoryPage() {
             )}
 
             {/* Search */}
-            <div className="mb-6">
+            <div className="mb-6 flex gap-3">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by Part Code, Name, or Barcode"
-                className="block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
+              <button
+                onClick={() => {
+                  setShowScanner(true);
+                  setError('');
+                  setSuccess('');
+                }}
+                className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+              >
+                Scan Barcode
+              </button>
             </div>
 
             {/* Add/Edit Form */}
@@ -460,6 +491,33 @@ export default function InventoryPage() {
                     Cancel
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Barcode Scanner */}
+            {showScanner && (
+              <BarcodeScanner
+                onScan={handleBarcodeScan}
+                onError={(err) => {
+                  setError(err);
+                  setShowScanner(false);
+                }}
+                onClose={() => setShowScanner(false)}
+              />
+            )}
+
+            {/* Scanned Part Info */}
+            {scannedPart && (
+              <div className="mb-4 rounded-md bg-blue-50 dark:bg-blue-900/20 p-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Found part: <strong>{scannedPart.name}</strong> ({scannedPart.partCode}) - Stock: {scannedPart.stockQty}
+                </p>
+                <button
+                  onClick={() => setScannedPart(null)}
+                  className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Clear
+                </button>
               </div>
             )}
 

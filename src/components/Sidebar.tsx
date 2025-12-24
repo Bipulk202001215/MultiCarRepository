@@ -39,6 +39,16 @@ const navItems: NavItem[] = [
     roles: ['ADMIN', 'INVENTORY_MANAGER'],
   },
   {
+    label: 'Suppliers',
+    href: '/inventory/suppliers',
+    roles: ['ADMIN', 'INVENTORY_MANAGER'],
+  },
+  {
+    label: 'Purchase Orders',
+    href: '/inventory/purchase-orders',
+    roles: ['ADMIN', 'INVENTORY_MANAGER'],
+  },
+  {
     label: 'User Management',
     href: '/admin/users',
     roles: ['ADMIN'],
