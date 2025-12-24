@@ -6,7 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { getJobCard, updateJobCard, searchVehicle } from '@/lib/jobService';
-import { ServiceType, JobDescription, JobStatus, CreateJobCardData } from '@/lib/types';
+import { ServiceType, JobDescription, JobStatus, CreateJobCardData, JobCard } from '@/lib/types';
 
 const SERVICE_TYPES: ServiceType[] = [
   'Periodic',
@@ -36,6 +36,7 @@ export default function JobDetailPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [currentJob, setCurrentJob] = useState<JobCard | null>(null);
 
   // Form state
   const [vehicleNo, setVehicleNo] = useState('');
@@ -67,6 +68,9 @@ export default function JobDetailPage() {
         setError('Job not found');
         return;
       }
+
+      // Store the full job data for printing
+      setCurrentJob(job);
 
       // Populate form with job data
       setVehicleNo(job.vehicleNo || '');
@@ -215,6 +219,9 @@ export default function JobDetailPage() {
         `Job card ${finalStatus === 'DRAFT' ? 'saved as draft' : 'submitted'} successfully!`
       );
 
+      // Reload job to get updated data
+      await loadJob();
+
       // For submitted: redirect to jobs list
       if (finalStatus === 'SUBMITTED') {
         setTimeout(() => {
@@ -246,13 +253,35 @@ export default function JobDetailPage() {
       <DashboardLayout>
         <div className="p-8">
           <div className="mx-auto max-w-4xl">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
-                Edit Job Card
-              </h1>
-              <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                Update job card details
-              </p>
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+                  Edit Job Card
+                </h1>
+                <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+                  Update job card details
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push(`/jobs/${jobId}/view`)}
+                className="rounded-md bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                View Job Card
+              </button>
             </div>
 
             {error && (
