@@ -156,6 +156,9 @@ export async function setupSuperAdmin(): Promise<void> {
         const credential = await signInWithEmailAndPassword(auth, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD);
         superAdminUser = credential.user;
       } else {
+        if (!currentUser) {
+          throw new Error('Current user is null');
+        }
         superAdminUser = currentUser;
       }
     }

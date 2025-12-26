@@ -262,6 +262,7 @@ export async function getInvoicesByJob(jobId: string): Promise<Invoice[]> {
     return {
       id: doc.id,
       invoiceNo: data.invoiceNo,
+      companyId: data.companyId || '',
       jobId: data.jobId,
       jobNo: data.jobNo,
       customerName: data.customerName,
