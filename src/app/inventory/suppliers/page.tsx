@@ -19,7 +19,7 @@ function validateGSTIN(gstin: string): boolean {
 }
 
 export default function SuppliersPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,13 +38,19 @@ export default function SuppliersPage() {
   });
 
   useEffect(() => {
-    loadSuppliers();
-  }, []);
+    if (userData?.companyId) {
+      loadSuppliers();
+    }
+  }, [userData?.companyId]);
 
   const loadSuppliers = async () => {
     try {
       setLoading(true);
-      const suppliersData = await getAllSuppliers();
+      if (!userData?.companyId) {
+        setError('Company not found');
+        return;
+      }
+      const suppliersData = await getAllSuppliers(userData.companyId);
       setSuppliers(suppliersData);
       setError('');
     } catch (err: any) {
@@ -74,6 +80,10 @@ export default function SuppliersPage() {
     }
 
     try {
+      if (!userData?.companyId || userData.companyId.trim() === '') {
+        setError('Company not found. Please contact administrator to assign you to a company.');
+        return;
+      }
       await createSupplier({
         ...formData,
         gstin: formData.gstin.toUpperCase(),
@@ -81,7 +91,7 @@ export default function SuppliersPage() {
         contact: formData.contact?.trim() || undefined,
         address: formData.address?.trim() || undefined,
         email: formData.email?.trim() || undefined,
-      });
+      }, userData.companyId);
       setSuccess('Supplier created successfully');
       setShowCreateForm(false);
       resetForm();

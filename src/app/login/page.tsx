@@ -46,6 +46,17 @@ export default function LoginPage() {
               ? 'Create a new account to get started' 
               : 'Sign in to your account'}
           </p>
+          {!isSignUp && (
+            <div className="mt-4 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3">
+              <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-1">👑 Super Admin Credentials:</p>
+              <p className="text-xs text-blue-800 dark:text-blue-300">
+                Email: <strong>superadmin@gmail.com</strong>
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-300">
+                Password: <strong>1234567</strong>
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (

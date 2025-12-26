@@ -29,7 +29,7 @@ const INITIAL_JOB_DESCRIPTION: JobDescription = {
 
 export default function QuickCheckInPage() {
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -161,7 +161,8 @@ export default function QuickCheckInPage() {
           jobDescriptions: validJobDescriptions,
           status: finalStatus,
         },
-        currentUser.uid
+        currentUser.uid,
+        userData?.companyId || ''
       );
 
       setSuccess(

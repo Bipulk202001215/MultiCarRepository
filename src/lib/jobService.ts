@@ -41,13 +41,15 @@ function generateJobNo(vehicleNo?: string): string {
  */
 export async function createJobCard(
   data: CreateJobCardData,
-  createdBy: string
+  createdBy: string,
+  companyId: string
 ): Promise<string> {
   const jobNo = generateJobNo(data.vehicleNo);
   
   const jobRef = doc(collection(db, JOBS_COLLECTION));
   const jobCard: Omit<JobCard, 'id'> = {
     jobNo,
+    companyId: data.companyId || companyId,
     vehicleNo: data.vehicleNo,
     customerName: data.customerName || '',
     mobile: data.mobile || '',
@@ -86,6 +88,7 @@ export async function getJobCard(jobId: string): Promise<JobCard | null> {
   return {
     id: jobSnap.id,
     jobNo: data.jobNo,
+    companyId: data.companyId || '',
     vehicleNo: data.vehicleNo,
     customerName: data.customerName,
     mobile: data.mobile,
@@ -102,42 +105,18 @@ export async function getJobCard(jobId: string): Promise<JobCard | null> {
 }
 
 /**
- * Get all job cards
+ * Get all job cards for a company
  */
-export async function getAllJobCards(): Promise<JobCard[]> {
-  const jobsRef = collection(db, JOBS_COLLECTION);
-  const q = query(jobsRef, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+export async function getAllJobCards(companyId: string): Promise<JobCard[]> {
+  if (!companyId || companyId.trim() === '') {
+    console.warn('getAllJobCards: companyId is empty, returning empty array');
+    return [];
+  }
   
-  return querySnapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      jobNo: data.jobNo,
-      vehicleNo: data.vehicleNo,
-      customerName: data.customerName,
-      mobile: data.mobile,
-      kmReading: data.kmReading,
-      carMake: data.carMake,
-      carModel: data.carModel,
-      carYear: data.carYear,
-      jobDescriptions: data.jobDescriptions,
-      status: data.status,
-      createdBy: data.createdBy,
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date(),
-    };
-  });
-}
-
-/**
- * Get job cards by creator
- */
-export async function getJobCardsByCreator(userId: string): Promise<JobCard[]> {
   const jobsRef = collection(db, JOBS_COLLECTION);
   const q = query(
-    jobsRef, 
-    where('createdBy', '==', userId),
+    jobsRef,
+    where('companyId', '==', companyId),
     orderBy('createdAt', 'desc')
   );
   const querySnapshot = await getDocs(q);
@@ -147,6 +126,7 @@ export async function getJobCardsByCreator(userId: string): Promise<JobCard[]> {
     return {
       id: doc.id,
       jobNo: data.jobNo,
+      companyId: data.companyId || companyId,
       vehicleNo: data.vehicleNo,
       customerName: data.customerName,
       mobile: data.mobile,
@@ -164,12 +144,72 @@ export async function getJobCardsByCreator(userId: string): Promise<JobCard[]> {
 }
 
 /**
- * Get job cards by status
+ * Get job cards by creator (filtered by company)
  */
-export async function getJobCardsByStatus(status: JobStatus): Promise<JobCard[]> {
+export async function getJobCardsByCreator(userId: string, companyId?: string): Promise<JobCard[]> {
+  if (!userId || userId.trim() === '') {
+    console.warn('getJobCardsByCreator: userId is empty, returning empty array');
+    return [];
+  }
+  
+  const jobsRef = collection(db, JOBS_COLLECTION);
+  
+  // If companyId is provided and valid, filter by both companyId and createdBy
+  // Otherwise, just filter by createdBy
+  let q;
+  if (companyId && companyId.trim() !== '') {
+    q = query(
+      jobsRef, 
+      where('companyId', '==', companyId),
+      where('createdBy', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+  } else {
+    // Fallback: just filter by creator if companyId is not available
+    q = query(
+      jobsRef,
+      where('createdBy', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+  }
+  
+  const querySnapshot = await getDocs(q);
+  
+  return querySnapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      jobNo: data.jobNo,
+      companyId: data.companyId || companyId,
+      vehicleNo: data.vehicleNo,
+      customerName: data.customerName,
+      mobile: data.mobile,
+      kmReading: data.kmReading,
+      carMake: data.carMake,
+      carModel: data.carModel,
+      carYear: data.carYear,
+      jobDescriptions: data.jobDescriptions,
+      status: data.status,
+      createdBy: data.createdBy,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    };
+  });
+}
+
+/**
+ * Get job cards by status (filtered by company)
+ */
+export async function getJobCardsByStatus(status: JobStatus, companyId: string): Promise<JobCard[]> {
+  if (!companyId || companyId.trim() === '') {
+    console.warn('getJobCardsByStatus: companyId is empty, returning empty array');
+    return [];
+  }
+  
   const jobsRef = collection(db, JOBS_COLLECTION);
   const q = query(
     jobsRef, 
+    where('companyId', '==', companyId),
     where('status', '==', status),
     orderBy('createdAt', 'desc')
   );
@@ -180,6 +220,7 @@ export async function getJobCardsByStatus(status: JobStatus): Promise<JobCard[]>
     return {
       id: doc.id,
       jobNo: data.jobNo,
+      companyId: data.companyId || companyId,
       vehicleNo: data.vehicleNo,
       customerName: data.customerName,
       mobile: data.mobile,

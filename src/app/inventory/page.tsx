@@ -27,7 +27,7 @@ function getStockStatus(stockQty: number, minStock: number): { label: string; co
 }
 
 export default function InventoryPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const [parts, setParts] = useState<Part[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,19 +59,29 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim()) {
+    if (userData?.companyId) {
+      loadData();
+    }
+  }, [userData?.companyId]);
+
+  useEffect(() => {
+    if (searchTerm.trim() && userData?.companyId) {
       handleSearch(searchTerm);
-    } else {
+    } else if (userData?.companyId) {
       loadParts();
     }
-  }, [searchTerm]);
+  }, [searchTerm, userData?.companyId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      if (!userData?.companyId) {
+        setError('Company not found');
+        return;
+      }
       const [partsData, suppliersData] = await Promise.all([
-        getAllParts(),
-        getAllSuppliers(),
+        getAllParts(userData.companyId),
+        getAllSuppliers(userData.companyId),
       ]);
       setParts(partsData);
       setSuppliers(suppliersData);
@@ -85,7 +95,8 @@ export default function InventoryPage() {
 
   const loadParts = async () => {
     try {
-      const partsData = await getAllParts();
+      if (!userData?.companyId) return;
+      const partsData = await getAllParts(userData.companyId);
       setParts(partsData);
     } catch (err: any) {
       setError(err.message || 'Failed to load parts');
@@ -94,7 +105,8 @@ export default function InventoryPage() {
 
   const handleSearch = async (term: string) => {
     try {
-      const results = await searchParts(term);
+      if (!userData?.companyId) return;
+      const results = await searchParts(term, userData.companyId);
       setParts(results);
     } catch (err: any) {
       setError(err.message || 'Search failed');
@@ -103,7 +115,8 @@ export default function InventoryPage() {
 
   const handleBarcodeScan = async (barcode: string) => {
     try {
-      const results = await searchParts(barcode);
+      if (!userData?.companyId) return;
+      const results = await searchParts(barcode, userData.companyId);
       if (results.length > 0) {
         setScannedPart(results[0]);
         setParts(results);
@@ -135,7 +148,11 @@ export default function InventoryPage() {
     }
 
     try {
-      await createPart(formData);
+      if (!userData?.companyId || userData.companyId.trim() === '') {
+        setError('Company not found. Please contact administrator to assign you to a company.');
+        return;
+      }
+      await createPart(formData, userData.companyId);
       setSuccess('Part created successfully');
       setShowAddForm(false);
       resetForm();

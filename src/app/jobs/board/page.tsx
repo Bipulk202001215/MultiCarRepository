@@ -47,7 +47,7 @@ function getHeaderColorClass(color: string): string {
 }
 
 export default function StatusBoardPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -60,7 +60,12 @@ export default function StatusBoardPage() {
   const loadJobs = async () => {
     try {
       setLoading(true);
-      const allJobs = await getAllJobCards();
+      if (!userData?.companyId || userData.companyId.trim() === '') {
+        setError('Company not found. Please contact administrator to assign you to a company.');
+        setJobs([]);
+        return;
+      }
+      const allJobs = await getAllJobCards(userData.companyId);
       // Filter out DRAFT and COMPLETED/CANCELLED statuses for the board
       const boardJobs = allJobs.filter(
         (job) => STATUS_COLUMNS.some((col) => col.status === job.status)

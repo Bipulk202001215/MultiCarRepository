@@ -41,12 +41,19 @@ async function generatePartCode(): Promise<string> {
 /**
  * Create a part
  */
-export async function createPart(data: CreatePartData): Promise<string> {
+export async function createPart(data: CreatePartData, companyId: string): Promise<string> {
+  // Validate companyId
+  const finalCompanyId = data.companyId || companyId;
+  if (!finalCompanyId || finalCompanyId.trim() === '') {
+    throw new Error('Company ID is required to create a part');
+  }
+  
   const partCode = data.partCode || await generatePartCode();
   
   const partRef = doc(collection(db, PARTS_COLLECTION));
   const part: Omit<Part, 'id'> = {
     partCode,
+    companyId: finalCompanyId,
     name: data.name,
     category: data.category,
     hsnCode: data.hsnCode,
@@ -96,6 +103,7 @@ export async function getPart(partId: string): Promise<Part | null> {
   return {
     id: partSnap.id,
     partCode: data.partCode,
+    companyId: data.companyId || '',
     name: data.name,
     category: data.category,
     hsnCode: data.hsnCode,
@@ -112,11 +120,20 @@ export async function getPart(partId: string): Promise<Part | null> {
 }
 
 /**
- * Get all parts
+ * Get all parts for a company
  */
-export async function getAllParts(): Promise<Part[]> {
+export async function getAllParts(companyId: string): Promise<Part[]> {
+  if (!companyId || companyId.trim() === '') {
+    console.warn('getAllParts: companyId is empty, returning empty array');
+    return [];
+  }
+  
   const partsRef = collection(db, PARTS_COLLECTION);
-  const q = query(partsRef, orderBy('createdAt', 'desc'));
+  const q = query(
+    partsRef,
+    where('companyId', '==', companyId),
+    orderBy('createdAt', 'desc')
+  );
   const querySnapshot = await getDocs(q);
   
   return querySnapshot.docs.map((doc) => {
@@ -124,6 +141,7 @@ export async function getAllParts(): Promise<Part[]> {
     return {
       id: doc.id,
       partCode: data.partCode,
+      companyId: data.companyId || companyId,
       name: data.name,
       category: data.category,
       hsnCode: data.hsnCode,
@@ -141,11 +159,10 @@ export async function getAllParts(): Promise<Part[]> {
 }
 
 /**
- * Search parts by code, name, or barcode
+ * Search parts by code, name, or barcode (filtered by company)
  */
-export async function searchParts(searchTerm: string): Promise<Part[]> {
-  const partsRef = collection(db, PARTS_COLLECTION);
-  const allParts = await getAllParts();
+export async function searchParts(searchTerm: string, companyId: string): Promise<Part[]> {
+  const allParts = await getAllParts(companyId);
   
   // Filter parts by search term (case-insensitive)
   const term = searchTerm.toLowerCase().trim();
@@ -222,10 +239,10 @@ export async function updateStock(partId: string, quantity: number, operation: '
 }
 
 /**
- * Get parts with low stock (stockQty <= minStock)
+ * Get parts with low stock (stockQty <= minStock) for a company
  */
-export async function getLowStockParts(): Promise<Part[]> {
-  const allParts = await getAllParts();
+export async function getLowStockParts(companyId: string): Promise<Part[]> {
+  const allParts = await getAllParts(companyId);
   return allParts.filter((part) => part.stockQty <= part.minStock);
 }
 
@@ -234,9 +251,16 @@ export async function getLowStockParts(): Promise<Part[]> {
 /**
  * Create supplier
  */
-export async function createSupplier(data: CreateSupplierData): Promise<string> {
+export async function createSupplier(data: CreateSupplierData, companyId: string): Promise<string> {
+  // Validate companyId
+  const finalCompanyId = data.companyId || companyId;
+  if (!finalCompanyId || finalCompanyId.trim() === '') {
+    throw new Error('Company ID is required to create a supplier');
+  }
+  
   const supplierRef = doc(collection(db, SUPPLIERS_COLLECTION));
   const supplier: Omit<Supplier, 'id'> = {
+    companyId: finalCompanyId,
     name: data.name,
     gstin: data.gstin,
     contact: data.contact,
@@ -269,6 +293,7 @@ export async function getSupplier(supplierId: string): Promise<Supplier | null> 
   const data = supplierSnap.data();
   return {
     id: supplierSnap.id,
+    companyId: data.companyId || '',
     name: data.name,
     gstin: data.gstin,
     contact: data.contact,
@@ -280,17 +305,27 @@ export async function getSupplier(supplierId: string): Promise<Supplier | null> 
 }
 
 /**
- * Get all suppliers
+ * Get all suppliers for a company
  */
-export async function getAllSuppliers(): Promise<Supplier[]> {
+export async function getAllSuppliers(companyId: string): Promise<Supplier[]> {
+  if (!companyId || companyId.trim() === '') {
+    console.warn('getAllSuppliers: companyId is empty, returning empty array');
+    return [];
+  }
+  
   const suppliersRef = collection(db, SUPPLIERS_COLLECTION);
-  const q = query(suppliersRef, orderBy('name', 'asc'));
+  const q = query(
+    suppliersRef,
+    where('companyId', '==', companyId),
+    orderBy('name', 'asc')
+  );
   const querySnapshot = await getDocs(q);
   
   return querySnapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
+      companyId: data.companyId || companyId,
       name: data.name,
       gstin: data.gstin,
       contact: data.contact,

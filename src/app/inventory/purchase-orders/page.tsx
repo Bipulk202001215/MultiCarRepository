@@ -27,7 +27,7 @@ const STATUS_COLORS: Record<PurchaseOrderStatus, string> = {
 };
 
 export default function PurchaseOrdersPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
@@ -55,16 +55,22 @@ export default function PurchaseOrdersPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (userData?.companyId) {
+      loadData();
+    }
+  }, [userData?.companyId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      if (!userData?.companyId) {
+        setError('Company not found');
+        return;
+      }
       const [posData, suppliersData, partsData] = await Promise.all([
-        getAllPurchaseOrders(),
-        getAllSuppliers(),
-        getAllParts(),
+        getAllPurchaseOrders(userData.companyId),
+        getAllSuppliers(userData.companyId),
+        getAllParts(userData.companyId),
       ]);
       setPurchaseOrders(posData);
       setSuppliers(suppliersData);
@@ -169,6 +175,10 @@ export default function PurchaseOrdersPage() {
         throw new Error('User not authenticated');
       }
       
+      if (!userData?.companyId) {
+        setError('Company not found');
+        return;
+      }
       await createPurchaseOrder(
         {
           supplierId: formData.supplierId,
@@ -177,7 +187,8 @@ export default function PurchaseOrdersPage() {
           expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
           status: formData.status,
         },
-        currentUser.uid
+        currentUser.uid,
+        userData.companyId
       );
       setSuccess('Purchase order created successfully');
       setShowCreateForm(false);

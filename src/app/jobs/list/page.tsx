@@ -38,7 +38,7 @@ function formatStatusLabel(status: string): string {
 }
 
 export default function JobListPage() {
-  const { currentUser, userRole } = useAuth();
+  const { currentUser, userRole, userData } = useAuth();
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,14 +48,15 @@ export default function JobListPage() {
     if (currentUser) {
       loadJobs();
     }
-  }, [currentUser]);
+  }, [currentUser, userData]);
 
   const loadJobs = async () => {
     if (!currentUser) return;
 
     try {
       setLoading(true);
-      const userJobs = await getJobCardsByCreator(currentUser.uid);
+      // Pass companyId if available, otherwise it will fallback to just filtering by creator
+      const userJobs = await getJobCardsByCreator(currentUser.uid, userData?.companyId);
       setJobs(userJobs);
       setError('');
     } catch (err: any) {

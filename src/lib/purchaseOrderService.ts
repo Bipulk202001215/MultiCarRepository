@@ -7,6 +7,7 @@ import {
   updateDoc, 
   deleteDoc,
   query,
+  where,
   orderBy,
   serverTimestamp
 } from 'firebase/firestore';
@@ -61,7 +62,11 @@ export function calculatePOTotals(items: PurchaseOrderItem[]): { subTotal: numbe
 /**
  * Create a purchase order
  */
-export async function createPurchaseOrder(data: CreatePurchaseOrderData, createdBy: string): Promise<string> {
+export async function createPurchaseOrder(
+  data: CreatePurchaseOrderData, 
+  createdBy: string,
+  companyId: string
+): Promise<string> {
   const poNumber = await generatePONumber();
   
   // Fetch supplier name
@@ -76,6 +81,7 @@ export async function createPurchaseOrder(data: CreatePurchaseOrderData, created
   const poRef = doc(collection(db, PURCHASE_ORDERS_COLLECTION));
   const po: Omit<PurchaseOrder, 'id'> = {
     poNumber,
+    companyId: data.companyId || companyId,
     supplierId: data.supplierId,
     supplierName: supplier.name,
     status: data.status || 'DRAFT',
@@ -116,6 +122,7 @@ export async function getPurchaseOrder(poId: string): Promise<PurchaseOrder | nu
   return {
     id: poSnap.id,
     poNumber: data.poNumber,
+    companyId: data.companyId || '',
     supplierId: data.supplierId,
     supplierName: data.supplierName,
     status: data.status,
@@ -133,11 +140,15 @@ export async function getPurchaseOrder(poId: string): Promise<PurchaseOrder | nu
 }
 
 /**
- * Get all purchase orders
+ * Get all purchase orders for a company
  */
-export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
+export async function getAllPurchaseOrders(companyId: string): Promise<PurchaseOrder[]> {
   const posRef = collection(db, PURCHASE_ORDERS_COLLECTION);
-  const q = query(posRef, orderBy('createdAt', 'desc'));
+  const q = query(
+    posRef,
+    where('companyId', '==', companyId),
+    orderBy('createdAt', 'desc')
+  );
   const querySnapshot = await getDocs(q);
   
   return querySnapshot.docs.map((doc) => {
@@ -145,6 +156,7 @@ export async function getAllPurchaseOrders(): Promise<PurchaseOrder[]> {
     return {
       id: doc.id,
       poNumber: data.poNumber,
+      companyId: data.companyId || companyId,
       supplierId: data.supplierId,
       supplierName: data.supplierName,
       status: data.status,

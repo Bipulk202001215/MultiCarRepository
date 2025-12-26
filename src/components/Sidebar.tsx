@@ -4,61 +4,71 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getRoleDisplayName } from '@/lib/roles';
+import { PERMISSIONS } from '@/lib/permissions';
+import { Permission } from '@/lib/types';
+import { isSuperAdmin } from '@/lib/superAdminSetup';
 
 interface NavItem {
   label: string;
   href: string;
   icon?: string;
-  roles: string[];
+  requiredPermission?: Permission; // Permission-based access
+  roles?: string[]; // Legacy role-based access
+  superAdminOnly?: boolean; // Only super admin can see this
 }
 
 const navItems: NavItem[] = [
   {
     label: 'Dashboard',
     href: '/',
-    roles: ['ADMIN', 'SERVICE_ADVISOR', 'INVENTORY_MANAGER', 'MECHANIC', 'ACCOUNTANT'],
+    requiredPermission: PERMISSIONS.VIEW_DASHBOARD,
   },
   {
-    label: 'Quick Check-in',
+    label: 'Job Card Management',
     href: '/jobs/create',
-    roles: ['ADMIN', 'SERVICE_ADVISOR'],
+    requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
   },
   {
     label: 'Status Board',
     href: '/jobs/board',
-    roles: ['ADMIN', 'SERVICE_ADVISOR', 'MECHANIC'],
+    requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
   },
   {
     label: 'My Jobs',
     href: '/jobs/list',
-    roles: ['ADMIN', 'SERVICE_ADVISOR'],
+    requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
   },
   {
-    label: 'Inventory',
+    label: 'Inventory Management',
     href: '/inventory',
-    roles: ['ADMIN', 'INVENTORY_MANAGER'],
+    requiredPermission: PERMISSIONS.INVENTORY_MANAGEMENT,
   },
   {
-    label: 'Suppliers',
+    label: 'Supplier Management',
     href: '/inventory/suppliers',
-    roles: ['ADMIN', 'INVENTORY_MANAGER'],
+    requiredPermission: PERMISSIONS.SUPPLIER_MANAGEMENT,
   },
   {
     label: 'Purchase Orders',
     href: '/inventory/purchase-orders',
-    roles: ['ADMIN', 'INVENTORY_MANAGER'],
+    requiredPermission: PERMISSIONS.PURCHASE_ORDER_MANAGEMENT,
+  },
+  {
+    label: 'Invoice Management',
+    href: '/invoices',
+    requiredPermission: PERMISSIONS.INVOICE_MANAGEMENT,
   },
   {
     label: 'User Management',
     href: '/admin/users',
-    roles: ['ADMIN'],
+    superAdminOnly: true, // Only super admin can access
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { userRole, userData, logout } = useAuth();
+  const { userRole, userData, userCompany, logout, hasPermission, userRoles, userPermissions, currentUser } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -69,22 +79,73 @@ export function Sidebar() {
     }
   };
 
-  if (!userRole) return null;
+  // Check if current user is super admin
+  const userIsSuperAdmin = isSuperAdmin(currentUser?.email || null);
 
-  const filteredNavItems = navItems.filter((item) =>
-    item.roles.includes(userRole)
-  );
+  // Check if user has ADMIN role (for legacy support)
+  const hasAdminRole = userRole === 'ADMIN' || (userRoles && userRoles.some(r => r.name === 'ADMIN'));
+
+  // Filter nav items based on permissions
+  const filteredNavItems = navItems.filter((item) => {
+    // Super admin only items - only super admin can see
+    if (item.superAdminOnly) {
+      return userIsSuperAdmin;
+    }
+
+    // Permission-based access (new system - takes priority)
+    if (item.requiredPermission) {
+      const hasPerm = hasPermission(item.requiredPermission);
+      // If user has permission, show it
+      if (hasPerm) return true;
+      
+      // Legacy support: If user has ADMIN role and no permissions set up yet, show these items:
+      // - VIEW_DASHBOARD
+      // - JOB_CARD_MANAGEMENT
+      // - SUPPLIER_MANAGEMENT
+      // - INVOICE_MANAGEMENT
+      // - INVENTORY_MANAGEMENT
+      if (hasAdminRole && (!userPermissions || userPermissions.length === 0)) {
+        const adminAllowedPermissions = [
+          PERMISSIONS.VIEW_DASHBOARD,
+          PERMISSIONS.JOB_CARD_MANAGEMENT,
+          PERMISSIONS.SUPPLIER_MANAGEMENT,
+          PERMISSIONS.INVOICE_MANAGEMENT,
+          PERMISSIONS.INVENTORY_MANAGEMENT,
+        ];
+        return adminAllowedPermissions.includes(item.requiredPermission);
+      }
+      
+      return false;
+    }
+
+    // Legacy role-based access (fallback)
+    if (item.roles && item.roles.length > 0) {
+      const hasRole = userRole && item.roles.includes(userRole) ||
+        (userRoles && userRoles.some(r => item.roles!.includes(r.name)));
+      return hasRole;
+    }
+
+    // If no permission or role specified, don't show
+    return false;
+  });
 
   return (
     <div className="flex h-screen w-64 flex-col bg-zinc-900 text-zinc-50">
       <div className="flex h-16 items-center border-b border-zinc-800 px-6">
-        <h1 className="text-xl font-bold">Multi Car Repair</h1>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">Multi Car Repair</h1>
+          {userCompany && (
+            <p className="text-xs text-zinc-400 mt-1 truncate" title={userCompany.name}>
+              {userCompany.name}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <nav className="space-y-2">
           {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
@@ -107,13 +168,20 @@ export function Sidebar() {
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold">
             {(userData?.displayName || 'U')[0].toUpperCase()}
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-zinc-50">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-zinc-50 truncate">
               {userData?.displayName || 'User'}
             </p>
-            <p className="text-xs text-zinc-400">
-              {userRole ? getRoleDisplayName(userRole) : ''}
+            <p className="text-xs text-zinc-400 truncate">
+              {userRoles && userRoles.length > 0 
+                ? userRoles.map(r => getRoleDisplayName(r.name)).join(', ')
+                : userRole 
+                  ? getRoleDisplayName(userRole) 
+                  : 'No role'}
             </p>
+            {userIsSuperAdmin && (
+              <p className="text-xs text-green-400 mt-1">👑 Super Admin</p>
+            )}
           </div>
         </div>
         <button
