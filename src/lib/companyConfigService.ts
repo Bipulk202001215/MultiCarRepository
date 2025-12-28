@@ -1,8 +1,6 @@
 import { 
-  collection, 
   doc, 
   getDoc, 
-  getDocs,
   setDoc, 
   updateDoc,
   serverTimestamp
@@ -74,6 +72,7 @@ export async function getCompanyGSTIN(): Promise<string> {
   }
   
   // Fallback to environment variable or default
-  return process.env.NEXT_PUBLIC_COMPANY_GSTIN || '02LSNPS6493R1ZC';
+  // In Vite, use import.meta.env.VITE_* instead of process.env.NEXT_PUBLIC_*
+  return import.meta.env.VITE_COMPANY_GSTIN || '02LSNPS6493R1ZC';
 }
 

@@ -1,12 +1,8 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getRoleDisplayName } from '@/lib/roles';
 import { PERMISSIONS } from '@/lib/permissions';
 import { Permission } from '@/lib/types';
-import { isSuperAdmin } from '@/lib/superAdminSetup';
 
 interface NavItem {
   label: string;
@@ -66,21 +62,21 @@ const navItems: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { userRole, userData, userCompany, logout, hasPermission, userRoles, userPermissions, currentUser } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { userRole, userData, userCompany, logout, hasPermission, userRoles, userPermissions, currentUser, isSuperAdmin } = useAuth();
 
   const handleLogout = async () => {
     try {
       await logout();
-      router.push('/login');
+      navigate('/login');
     } catch (error) {
       console.error('Failed to logout:', error);
     }
   };
 
   // Check if current user is super admin
-  const userIsSuperAdmin = isSuperAdmin(currentUser?.email || null);
+  const userIsSuperAdmin = isSuperAdmin;
 
   // Check if user has ADMIN role (for legacy support)
   const hasAdminRole = userRole === 'ADMIN' || (userRoles && userRoles.some(r => r.name === 'ADMIN'));
@@ -145,11 +141,11 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <nav className="space-y-2">
           {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 className={`flex items-center rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-blue-600 text-white'
