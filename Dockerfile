@@ -15,10 +15,22 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Stage 2: Serve with nginx (Production)
+FROM nginx:alpine AS production
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
 
-# Stage 2: Development image (allows modifications)
+# Stage 3: Development image (allows modifications)
 FROM node:20-alpine AS development
 
 WORKDIR /app
