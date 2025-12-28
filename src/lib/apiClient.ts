@@ -251,6 +251,92 @@ export async function getRolePermissions(roleId: string): Promise<RolePermission
 }
 
 /**
+ * Create a new job
+ * API Endpoint: POST {{api_base}}/jobs
+ */
+export async function createJobApi(jobData: any): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Creating job via API:', jobData);
+    console.log('📤 API Endpoint: POST /jobs');
+  }
+  
+  try {
+    const response = await apiRequest<any>('/jobs', {
+      method: 'POST',
+      body: JSON.stringify(jobData),
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Job API response received:', response);
+    }
+    
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Job API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Update job by jobCardId
+ * API Endpoint: PUT {{api_base}}/jobs/{jobCardId}
+ */
+export async function updateJobApi(jobCardId: string, jobData: any): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Updating job via API:', jobData);
+    console.log('📤 API Endpoint: PUT /jobs/' + jobCardId);
+  }
+  
+  try {
+    const response = await apiRequest<any>(`/jobs/${jobCardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(jobData),
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Job update API response received:', response);
+    }
+    
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Job update API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get jobs by company ID
+ * API Endpoint: GET {{api_base}}/jobs/company/{companyId}
+ */
+export async function getJobsByCompanyId(companyId: string): Promise<any[]> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching jobs by company ID:', companyId);
+    console.log('📤 API Endpoint: GET /jobs/company/' + companyId);
+  }
+
+  try {
+    const response = await apiRequest<any[]>(`/jobs/company/${companyId}`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Jobs API response received:', response);
+    }
+
+    return Array.isArray(response) ? response : [];
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Jobs API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
  * Logout API call (optional - can be used if backend requires logout endpoint)
  */
 export async function logoutApi(): Promise<void> {

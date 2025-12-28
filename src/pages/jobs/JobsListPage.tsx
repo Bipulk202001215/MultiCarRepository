@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { getJobCardsByCreator } from '@/lib/jobService';
+import { getJobsByCompanyId } from '@/lib/apiClient';
 import { JobCard } from '@/lib/types';
 import { Link } from 'react-router-dom';
 
@@ -34,7 +34,7 @@ function formatStatusLabel(status: string): string {
 }
 
 export default function JobsListPage() {
-  const { currentUser, userRole, userData } = useAuth();
+  const { currentUser, userRole, userData, userCompany } = useAuth();
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,19 +44,72 @@ export default function JobsListPage() {
     if (currentUser) {
       loadJobs();
     }
-  }, [currentUser, userData]);
+  }, [currentUser, userData, userCompany]);
 
   const loadJobs = async () => {
     if (!currentUser) return;
 
     try {
       setLoading(true);
-      // Pass companyId if available, otherwise it will fallback to just filtering by creator
-      const userJobs = await getJobCardsByCreator(currentUser.id, userData?.companyId);
-      setJobs(userJobs);
+      const companyId = userCompany?.id || userData?.companyId;
+      
+      if (!companyId) {
+        setError('Company ID not found. Please contact administrator.');
+        setJobs([]);
+        return;
+      }
+
+      // Fetch jobs by company ID from API
+      const apiJobs = await getJobsByCompanyId(companyId);
+      
+      // Transform API response to JobCard format
+      const transformedJobs: JobCard[] = apiJobs.map((job: any) => {
+        // Extract job descriptions from nested structure: jobDetailId.jobDescription
+        const jobDescriptions = job.jobDetailId?.jobDescription || [];
+        
+        // Transform job descriptions to match JobDescription type
+        // Convert serviceType from uppercase (PERIODIC) to title case (Periodic)
+        const transformServiceType = (type: string): string => {
+          if (!type) return 'Periodic';
+          // Handle special case: AC should stay as AC
+          if (type.toUpperCase() === 'AC') return 'AC';
+          // Convert "PERIODIC" -> "Periodic", "REPAIR" -> "Repair", etc.
+          return type.charAt(0) + type.slice(1).toLowerCase();
+        };
+        
+        const transformedJobDescriptions = jobDescriptions
+          .filter((desc: any) => desc.serviceType || desc.description) // Filter out completely empty entries
+          .map((desc: any) => ({
+            serviceType: transformServiceType(desc.serviceType) as any,
+            description: desc.description || '',
+            assignedMechanicType: desc.assignedMechanicType || '',
+            estimatedTime: desc.estimatedTime || '',
+          }));
+
+        return {
+          id: job.jobCardId || '',
+          jobNo: job.jobCardId || '',
+          companyId: companyId,
+          vehicleNo: job.vehicleNumber || '',
+          customerName: job.customerName || '', // Not present in API response, keeping empty string
+          mobile: job.mobileNumber || '',
+          kmReading: String(job.kmReading || ''),
+          carMake: job.carMake || '',
+          carModel: job.carModel || '',
+          carYear: job.carYear || undefined,
+          jobDescriptions: transformedJobDescriptions,
+          status: job.status || 'PENDING',
+          createdBy: job.createdBy || currentUser.id,
+          createdAt: job.createdOn ? new Date(job.createdOn) : new Date(),
+          updatedAt: job.updatedOn ? new Date(job.updatedOn) : new Date(),
+        };
+      });
+
+      setJobs(transformedJobs);
       setError('');
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -83,24 +136,24 @@ export default function JobsListPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+              <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                 My Job Cards
               </h1>
               <p className="mt-2 text-zinc-600 dark:text-zinc-400">
                 All job cards created by you
               </p>
             </div>
-            <Link
-              to="/jobs/create"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-            >
-              Create New Job
-            </Link>
+                <Link
+                  to="/jobs/create"
+                  className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Create New Job
+                </Link>
           </div>
 
           {error && (
-            <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="mb-4 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-4 shadow-md">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
@@ -130,22 +183,19 @@ export default function JobsListPage() {
           </div>
 
           {/* Jobs Table */}
-          <div className="overflow-hidden rounded-lg bg-white dark:bg-zinc-900 shadow">
+          <div className="overflow-hidden rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 shadow-2xl border border-white/20 dark:border-zinc-700/50">
             <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-              <thead className="bg-zinc-50 dark:bg-zinc-800">
+                  <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                     Job No
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Vehicle No
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Customer Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Mobile
-                  </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Vehicle No
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Mobile
+                      </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                     Status
                   </th>
@@ -163,15 +213,12 @@ export default function JobsListPage() {
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-50">
                       {job.jobNo}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                      {job.vehicleNo || 'N/A'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                      {job.customerName || 'N/A'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                      {job.mobile || 'N/A'}
-                    </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
+                          {job.vehicleNo || 'N/A'}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
+                          {job.mobile || 'N/A'}
+                        </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadgeClass(
@@ -184,14 +231,14 @@ export default function JobsListPage() {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
                       {job.createdAt.toLocaleDateString()}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                      <Link
-                        to={`/jobs/${job.id}`}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        View
-                      </Link>
-                    </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                          <Link
+                            to={`/jobs/${job.id}`}
+                            className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
+                          >
+                            View →
+                          </Link>
+                        </td>
                   </tr>
                 ))}
               </tbody>

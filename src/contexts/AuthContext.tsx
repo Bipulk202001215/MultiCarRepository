@@ -46,13 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load user data from token on mount
+  // Load user data from token on mount (page refresh)
   useEffect(() => {
     const loadUserData = async () => {
       const token = getAuthToken();
       if (token) {
-        // TODO: Call API to get user data from token
-        // For now, we'll load it from login response stored in localStorage
+        // Load user data from login response stored in localStorage
         const storedUserData = localStorage.getItem('user_data');
         if (storedUserData) {
           try {
@@ -86,6 +85,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 createdAt: new Date(),
                 updatedAt: new Date(),
               });
+            }
+
+            // Call the same APIs as on login: user-roles and role-permissions
+            try {
+              // Step 1: Get user roles to extract roleId
+              console.log('🔄 [Page Refresh] Step 1: Calling GET /user-roles/user/' + data.userId);
+              const userRoleResponse = await getUserRoles(data.userId);
+              console.log('✅ [Page Refresh] User roles API response:', userRoleResponse);
+              
+              // Extract roleId from user-roles response (it's an array, get first item's roleId.roleId)
+              if (userRoleResponse && userRoleResponse.length > 0 && userRoleResponse[0].roleId) {
+                const roleId = userRoleResponse[0].roleId.roleId;
+                console.log('✅ [Page Refresh] Extracted roleId:', roleId);
+                
+                // Step 2: Get role permissions using the roleId
+                console.log('🔄 [Page Refresh] Step 2: Calling GET /role-permissions/role/' + roleId);
+                const rolePermissions = await getRolePermissions(roleId);
+                console.log('✅ [Page Refresh] Role permissions API response:', rolePermissions);
+                
+                // Convert API response to Role format
+                if (rolePermissions.roleId) {
+                  const role: Role = {
+                    id: rolePermissions.roleId,
+                    name: (rolePermissions.roleName as UserRole) || 'SERVICE_ADVISOR',
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  };
+                  setUserRoles([role]);
+                }
+                
+                // Convert API response permissions to Permission array
+                if (rolePermissions.permissions && Array.isArray(rolePermissions.permissions)) {
+                  const permissions: Permission[] = rolePermissions.permissions
+                    .map((p: any) => p.permissionName as Permission)
+                    .filter((p: Permission) => p !== undefined);
+                  setUserPermissions(permissions);
+                  console.log('✅ [Page Refresh] Successfully set user permissions:', permissions);
+                }
+              } else {
+                console.error('❌ [Page Refresh] roleId not found in user-roles response');
+                setUserRoles([]);
+                setUserPermissions([]);
+              }
+            } catch (error: any) {
+              console.error('❌ [Page Refresh] Error fetching user roles or role permissions:', error);
+              console.error('Error details:', {
+                message: error.message,
+                status: error.status,
+                statusText: error.statusText,
+              });
+              // Set empty arrays if API call fails
+              setUserRoles([]);
+              setUserPermissions([]);
             }
           } catch (error) {
             console.error('Error parsing stored user data:', error);
@@ -259,7 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

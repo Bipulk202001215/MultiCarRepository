@@ -43,7 +43,7 @@ export default function HomePage() {
       <div className="p-8">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+            <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
               Welcome, {userData?.displayName || currentUser.displayName || 'User'}!
             </h1>
             {userCompany && (
@@ -56,7 +56,7 @@ export default function HomePage() {
                 {userRoles.map((role) => (
                   <span
                     key={role.id}
-                    className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs font-semibold text-blue-800 dark:text-blue-200"
+                    className="inline-flex rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 px-3 py-1.5 text-xs font-bold text-white shadow-md"
                   >
                     {role.name}
                   </span>
@@ -69,16 +69,16 @@ export default function HomePage() {
             {hasJobCardPermission && (
               <Link
                 to="/jobs/board"
-                className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow transition-shadow hover:shadow-lg"
+                className="rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 p-6 shadow-xl border border-white/20 dark:border-zinc-700/50 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] transform"
               >
-                <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                   Job Cards
                 </h2>
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
                   View and manage job cards
                 </p>
-                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400">
-                  <span className="text-sm font-medium">View Jobs →</span>
+                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                  <span className="text-sm">View Jobs →</span>
                 </div>
               </Link>
             )}
@@ -86,16 +86,16 @@ export default function HomePage() {
             {hasInventoryPermission && (
               <Link
                 to="/inventory"
-                className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow transition-shadow hover:shadow-lg"
+                className="rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 p-6 shadow-xl border border-white/20 dark:border-zinc-700/50 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] transform"
               >
-                <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                   Inventory
                 </h2>
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
                   Manage parts, suppliers, and purchase orders
                 </p>
-                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400">
-                  <span className="text-sm font-medium">Manage Inventory →</span>
+                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                  <span className="text-sm">Manage Inventory →</span>
                 </div>
               </Link>
             )}
@@ -103,22 +103,22 @@ export default function HomePage() {
             {hasInvoicePermission && (
               <Link
                 to="/invoices"
-                className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow transition-shadow hover:shadow-lg"
+                className="rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 p-6 shadow-xl border border-white/20 dark:border-zinc-700/50 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] transform"
               >
-                <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                   Invoices
                 </h2>
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
                   Create and manage invoices
                 </p>
-                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400">
-                  <span className="text-sm font-medium">View Invoices →</span>
+                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                  <span className="text-sm">View Invoices →</span>
                 </div>
               </Link>
             )}
 
             {(hasInventoryPermission || hasJobCardPermission || hasInvoicePermission) && (
-              <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
+              <div className="rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 p-6 shadow-xl border border-white/20 dark:border-zinc-700/50">
                 <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
                   Quick Actions
                 </h2>
@@ -126,25 +126,25 @@ export default function HomePage() {
                   {hasJobCardPermission && (
                     <Link
                       to="/jobs/create"
-                      className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="block text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
-                      Create Job Card
+                      Create Job Card →
                     </Link>
                   )}
                   {hasInvoicePermission && (
                     <Link
                       to="/invoices/create"
-                      className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="block text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
-                      Create Invoice
+                      Create Invoice →
                     </Link>
                   )}
                   {hasInventoryPermission && (
                     <Link
                       to="/inventory/purchase-orders"
-                      className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="block text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
-                      Create Purchase Order
+                      Create Purchase Order →
                     </Link>
                   )}
                 </div>
@@ -154,31 +154,31 @@ export default function HomePage() {
             {currentUser?.email === 'superadmin@gmail.com' && (
               <Link
                 to="/admin/users"
-                className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow transition-shadow hover:shadow-lg border-2 border-green-500"
+                className="rounded-2xl backdrop-blur-sm bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-zinc-900/90 dark:to-zinc-800/90 p-6 shadow-xl border-2 border-blue-400 dark:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] transform"
               >
-                <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                   👑 User Management
                 </h2>
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
                   Manage users, roles, and permissions (Super Admin Only)
                 </p>
-                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400">
-                  <span className="text-sm font-medium">Manage Users →</span>
+                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 font-semibold">
+                  <span className="text-sm">Manage Users →</span>
                 </div>
               </Link>
             )}
           </div>
 
           {userPermissions.length > 0 && (
-            <div className="mt-8 rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
-              <h2 className="text-lg font-semibold text-black dark:text-zinc-50 mb-4">
+            <div className="mt-8 rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 p-6 shadow-xl border border-white/20 dark:border-zinc-700/50">
+              <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-4">
                 Your Permissions
               </h2>
               <div className="flex flex-wrap gap-2">
                 {userPermissions.map((permission) => (
                   <span
                     key={permission}
-                    className="inline-flex rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-xs font-semibold text-green-800 dark:text-green-200"
+                    className="inline-flex rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 px-3 py-1.5 text-xs font-bold text-white shadow-md"
                   >
                     {getPermissionDisplayName(permission)}
                   </span>

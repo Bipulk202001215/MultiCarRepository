@@ -57,7 +57,7 @@ function App() {
           path="/jobs/:jobId"
           element={
             <ProtectedRoute>
-              <JobDetailPage />
+              <CreateJobPage />
             </ProtectedRoute>
           }
         />
