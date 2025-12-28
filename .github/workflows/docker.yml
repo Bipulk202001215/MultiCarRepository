@@ -40,6 +40,7 @@ jobs:
           context: .
           push: true
           tags: bipulk3335/multi-car-repository-frontend:latest
+          platforms: linux/amd64
           cache-from: type=registry,ref=bipulk3335/multi-car-repository-frontend:buildcache
           cache-to: type=registry,ref=bipulk3335/multi-car-repository-frontend:buildcache,mode=max
 
