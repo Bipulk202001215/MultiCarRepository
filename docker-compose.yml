@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Development service - allows live editing
+  dev:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --host 0.0.0.0
+
+  # Production service - optimized build
+  prod:
+    build:
+      context: .
+      target: production
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
