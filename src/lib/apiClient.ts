@@ -4,7 +4,51 @@
 
 // In Vite, use import.meta.env instead of process.env
 // Environment variables must be prefixed with VITE_
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Support runtime configuration via window.__APP_CONFIG__ (for Docker deployments)
+declare global {
+  interface Window {
+    __APP_CONFIG__?: {
+      VITE_API_BASE_URL?: string;
+    };
+  }
+}
+
+const getApiBaseUrl = (): string => {
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    const hasConfig = !!window.__APP_CONFIG__;
+    const hasApiUrl = !!window.__APP_CONFIG__?.VITE_API_BASE_URL;
+    const runtimeUrl = window.__APP_CONFIG__?.VITE_API_BASE_URL || '';
+    const buildTimeUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const configLoaded = !!(window as any).__APP_CONFIG_LOADED__;
+    fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:getApiBaseUrl',message:'API URL resolution',data:{hasConfig,hasApiUrl,runtimeUrl,buildTimeUrl,configLoaded,windowConfig:window.__APP_CONFIG__},timestamp:Date.now(),sessionId:'debug-session',runId:'api-url-check',hypothesisId:'A'})}).catch(()=>{});
+  }
+  // #endregion agent log
+  
+  // Priority 1: Runtime config (from config.js injected at container startup)
+  if (typeof window !== 'undefined') {
+    // Check if config.js has loaded
+    if ((window as any).__APP_CONFIG_LOADED__ && window.__APP_CONFIG__?.VITE_API_BASE_URL) {
+      return window.__APP_CONFIG__.VITE_API_BASE_URL;
+    }
+    // Fallback: check even if not marked as loaded (in case flag isn't set)
+    if (window.__APP_CONFIG__?.VITE_API_BASE_URL) {
+      return window.__APP_CONFIG__.VITE_API_BASE_URL;
+    }
+  }
+  // Priority 2: Build-time env var (from .env.local during development)
+  return import.meta.env.VITE_API_BASE_URL || '';
+};
+
+// #region agent log
+// Log the resolved API_BASE_URL at module load time
+if (typeof window !== 'undefined') {
+  const resolvedUrl = getApiBaseUrl();
+  fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:module-init',message:'API_BASE_URL resolved',data:{resolvedUrl,isEmpty:!resolvedUrl||resolvedUrl.trim()===''},timestamp:Date.now(),sessionId:'debug-session',runId:'api-url-check',hypothesisId:'B'})}).catch(()=>{});
+}
+// #endregion agent log
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Only log warning in browser environment to avoid server-side noise
 // The actual validation happens when making API requests
@@ -101,10 +145,46 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  // Re-evaluate API_BASE_URL in case config.js loaded after module initialization
+  // Wait a bit if config.js hasn't loaded yet (max 100ms)
+  let currentApiUrl = getApiBaseUrl();
+  if (!currentApiUrl && typeof window !== 'undefined') {
+    // Config.js might not have loaded yet, wait a bit
+    for (let i = 0; i < 10 && !currentApiUrl; i++) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      currentApiUrl = getApiBaseUrl();
+    }
+  }
+  
+  // #region agent log
+  const debugData = {
+    endpoint,
+    currentApiUrl,
+    moduleApiUrl: API_BASE_URL,
+    isEmpty: !currentApiUrl || currentApiUrl.trim() === '',
+    hasConfig: typeof window !== 'undefined' ? !!window.__APP_CONFIG__ : false,
+    configLoaded: typeof window !== 'undefined' ? !!(window as any).__APP_CONFIG_LOADED__ : false,
+    windowConfig: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null
+  };
+  console.log('API Request Debug:', debugData);
+  fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:apiRequest',message:'API request initiated',data:debugData,timestamp:Date.now(),sessionId:'debug-session',runId:'api-request',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion agent log
+  
   // Validate API_BASE_URL is set
-  if (!API_BASE_URL || API_BASE_URL.trim() === '') {
+  if (!currentApiUrl || currentApiUrl.trim() === '') {
+    // #region agent log
+    const debugInfo = {
+      endpoint,
+      currentApiUrl,
+      windowConfig: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null,
+      configLoaded: typeof window !== 'undefined' ? !!(window as any).__APP_CONFIG_LOADED__ : false,
+      buildTimeUrl: import.meta.env.VITE_API_BASE_URL || ''
+    };
+    console.error('API URL validation failed:', debugInfo);
+    fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:apiRequest',message:'API URL validation failed',data:debugInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'api-request',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion agent log
     const error: ApiError = {
-      message: 'API base URL is not configured. Please set VITE_API_BASE_URL in your .env.local file.',
+      message: 'API base URL is not configured. Please set VITE_API_BASE_URL in your .env.local file or configure it via Docker environment variable.',
       status: 0,
     };
     throw error;
@@ -113,7 +193,7 @@ export async function apiRequest<T>(
   // Ensure endpoint starts with /
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   // Remove trailing slash from API_BASE_URL if present
-  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const baseUrl = currentApiUrl.endsWith('/') ? currentApiUrl.slice(0, -1) : currentApiUrl;
   const url = `${baseUrl}${normalizedEndpoint}`;
   
   // Debug logging
