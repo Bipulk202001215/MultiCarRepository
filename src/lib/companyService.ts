@@ -112,3 +112,6 @@ export async function deleteCompany(companyId: string): Promise<void> {
   await deleteDoc(companyRef);
 }
 
+
+
+

@@ -116,3 +116,6 @@ export function BarcodeScanner({ onScan, onError, onClose }: BarcodeScannerProps
   );
 }
 
+
+
+

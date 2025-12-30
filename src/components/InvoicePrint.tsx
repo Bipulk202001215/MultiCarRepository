@@ -254,3 +254,6 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
   );
 }
 
+
+
+
