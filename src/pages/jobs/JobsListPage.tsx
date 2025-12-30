@@ -187,7 +187,7 @@ export default function JobsListPage() {
             <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                   <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
                     Job No
                   </th>
                       <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
@@ -196,13 +196,13 @@ export default function JobsListPage() {
                       <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
                         Mobile
                       </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
                     Actions
                   </th>
                 </tr>

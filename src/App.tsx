@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { PERMISSIONS } from './lib/permissions';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import JobsBoardPage from './pages/jobs/JobsBoardPage';
@@ -72,7 +73,7 @@ function App() {
         <Route
           path="/inventory"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedPermissions={[PERMISSIONS.INVENTORY_MANAGEMENT]}>
               <InventoryPage />
             </ProtectedRoute>
           }

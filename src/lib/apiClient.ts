@@ -97,7 +97,7 @@ export function removeAuthToken(): void {
 /**
  * Make an API request
  */
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
