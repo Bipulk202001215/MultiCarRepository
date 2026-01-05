@@ -11,6 +11,12 @@ interface NavItem {
   requiredPermission?: Permission; // Permission-based access
   roles?: string[]; // Legacy role-based access
   superAdminOnly?: boolean; // Only super admin can see this
+  section?: string; // Section grouping
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
 }
 
 const navItems: NavItem[] = [
@@ -24,11 +30,11 @@ const navItems: NavItem[] = [
     href: '/jobs/create',
     requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
   },
-  {
-    label: 'Status Board',
-    href: '/jobs/board',
-    requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
-  },
+  // {
+  //   label: 'Status Board',
+  //   href: '/jobs/board',
+  //   requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
+  // },
   {
     label: 'My Jobs',
     href: '/jobs/list',
@@ -38,26 +44,31 @@ const navItems: NavItem[] = [
     label: 'Inventory Management',
     href: '/inventory',
     requiredPermission: PERMISSIONS.INVENTORY_MANAGEMENT,
-  },
-  {
-    label: 'Supplier Management',
-    href: '/inventory/suppliers',
-    requiredPermission: PERMISSIONS.SUPPLIER_MANAGEMENT,
+    section: 'inventory',
   },
   {
     label: 'Purchase Orders',
     href: '/inventory/purchase-orders',
     requiredPermission: PERMISSIONS.PURCHASE_ORDER_MANAGEMENT,
+    section: 'inventory',
+  },
+  {
+    label: 'Supplier Management',
+    href: '/suppliers',
+    requiredPermission: PERMISSIONS.SUPPLIER_MANAGEMENT,
+    section: 'suppliers',
   },
   {
     label: 'Invoice Management',
     href: '/invoices',
     requiredPermission: PERMISSIONS.INVOICE_MANAGEMENT,
+    section: 'invoices',
   },
   {
     label: 'User Management',
     href: '/admin/users',
     superAdminOnly: true, // Only super admin can access
+    section: 'admin',
   },
 ];
 
@@ -125,6 +136,30 @@ export function Sidebar() {
     return false;
   });
 
+  // Group items by section
+  const sections: NavSection[] = [
+    {
+      title: 'General',
+      items: filteredNavItems.filter(item => !item.section),
+    },
+    {
+      title: 'Inventory',
+      items: filteredNavItems.filter(item => item.section === 'inventory'),
+    },
+    {
+      title: 'Suppliers',
+      items: filteredNavItems.filter(item => item.section === 'suppliers'),
+    },
+    {
+      title: 'Invoices',
+      items: filteredNavItems.filter(item => item.section === 'invoices'),
+    },
+    {
+      title: 'Admin',
+      items: filteredNavItems.filter(item => item.section === 'admin'),
+    },
+  ].filter(section => section.items.length > 0); // Only show sections with items
+
   return (
     <div className="flex h-screen w-64 flex-col bg-gradient-to-b from-blue-600 via-blue-700 to-indigo-800 text-white shadow-2xl">
       <div className="flex h-16 items-center border-b border-blue-500/30 px-6 bg-blue-600/50 backdrop-blur-sm">
@@ -140,22 +175,26 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <nav className="space-y-2">
-          {filteredNavItems.map((item) => {
-            const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30 transform scale-105'
-                    : 'text-blue-100 hover:bg-white/10 hover:text-white hover:shadow-md hover:backdrop-blur-sm'
-                }`}
-              >
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          {sections.map((section) => (
+            <div key={section.title} className="space-y-2">
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                      isActive
+                        ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30 transform scale-105'
+                        : 'text-blue-100 hover:bg-white/10 hover:text-white hover:shadow-md hover:backdrop-blur-sm'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 

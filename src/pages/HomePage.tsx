@@ -133,10 +133,10 @@ export default function HomePage() {
                   )}
                   {hasInvoicePermission && (
                     <Link
-                      to="/invoices/create"
+                      to="/invoices"
                       className="block text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
-                      Create Invoice →
+                      Manage Invoices →
                     </Link>
                   )}
                   {hasInventoryPermission && (

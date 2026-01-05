@@ -432,3 +432,182 @@ export async function logoutApi(): Promise<void> {
   }
 }
 
+/**
+ * Get all suppliers for a company
+ * API Endpoint: GET {{api_base}}/suppliers
+ */
+export async function getSuppliersApi(companyId?: string): Promise<any[]> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching suppliers via API');
+    console.log('📤 API Endpoint: GET /suppliers');
+  }
+
+  try {
+    let endpoint = '/suppliers';
+    if (companyId) {
+      endpoint = `/suppliers?companyId=${companyId}`;
+    }
+    
+    const response = await apiRequest<any[]>(endpoint, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Suppliers API response received:', response);
+    }
+
+    return Array.isArray(response) ? response : [];
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Suppliers API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create a new supplier
+ * API Endpoint: POST {{api_base}}/suppliers
+ */
+export async function createSupplierApi(supplierData: any): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Creating supplier via API:', supplierData);
+    console.log('📤 API Endpoint: POST /suppliers');
+  }
+  
+  try {
+    const response = await apiRequest<any>('/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(supplierData),
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Supplier API response received:', response);
+    }
+    
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Supplier API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Update supplier by ID
+ * API Endpoint: PUT {{api_base}}/suppliers/{supplierId}
+ */
+export async function updateSupplierApi(supplierId: string, supplierData: any): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Updating supplier via API:', supplierData);
+    console.log('📤 API Endpoint: PUT /suppliers/' + supplierId);
+  }
+  
+  try {
+    const response = await apiRequest<any>(`/suppliers/${supplierId}`, {
+      method: 'PUT',
+      body: JSON.stringify(supplierData),
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Supplier update API response received:', response);
+    }
+    
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Supplier update API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Delete supplier by ID
+ * API Endpoint: DELETE {{api_base}}/suppliers/{supplierId}
+ */
+export async function deleteSupplierApi(supplierId: string): Promise<void> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Deleting supplier via API');
+    console.log('📤 API Endpoint: DELETE /suppliers/' + supplierId);
+  }
+  
+  try {
+    await apiRequest<void>(`/suppliers/${supplierId}`, {
+      method: 'DELETE',
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Supplier deleted successfully');
+    }
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Supplier delete API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get all invoices
+ * API Endpoint: GET {{api_base}}/invoices
+ */
+export async function getInvoicesApi(companyId?: string): Promise<any[]> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching invoices via API');
+    console.log('📤 API Endpoint: GET /invoices');
+  }
+
+  try {
+    let endpoint = '/invoices';
+    if (companyId) {
+      endpoint = `/invoices?companyId=${companyId}`;
+    }
+    
+    const response = await apiRequest<any[]>(endpoint, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Invoices API response received:', response);
+    }
+
+    return Array.isArray(response) ? response : [];
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Invoices API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create a new invoice
+ * API Endpoint: POST {{api_base}}/invoices
+ */
+export async function createInvoiceApi(invoiceData: any): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Creating invoice via API:', invoiceData);
+    console.log('📤 API Endpoint: POST /invoices');
+  }
+  
+  try {
+    const response = await apiRequest<any>('/invoices', {
+      method: 'POST',
+      body: JSON.stringify(invoiceData),
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ Invoice API response received:', response);
+    }
+    
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Invoice API error:', error);
+    }
+    throw error;
+  }
+}
+

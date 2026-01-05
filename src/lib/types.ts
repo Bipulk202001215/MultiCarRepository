@@ -165,15 +165,17 @@ export type PartCategory = 'OEM' | 'OES' | 'Local';
 export type GSTSlab = 5 | 18 | 28;
 
 export interface Supplier {
-  id: string;
+  id?: string;
+  supplierId?: string; // API might use supplierId
   companyId: string;
   name: string;
+  mobile: string;
   gstin: string;
-  contact?: string;
-  address?: string;
+  address: string;
+  contact?: string; // Keep for backward compatibility
   email?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface Part {
@@ -211,9 +213,10 @@ export interface CreatePartData {
 export interface CreateSupplierData {
   companyId?: string; // Optional, will be set from user context if not provided
   name: string;
+  mobile: string;
   gstin: string;
-  contact?: string;
-  address?: string;
+  address: string;
+  contact?: string; // Keep for backward compatibility
   email?: string;
 }
 

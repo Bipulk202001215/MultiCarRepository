@@ -87,7 +87,7 @@ function App() {
           }
         />
         <Route
-          path="/inventory/suppliers"
+          path="/suppliers"
           element={
             <ProtectedRoute>
               <SuppliersPage />
