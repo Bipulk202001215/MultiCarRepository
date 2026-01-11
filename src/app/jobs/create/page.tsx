@@ -386,8 +386,7 @@ export default function QuickCheckInPage() {
                           <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             Assigned Mechanic Type
                           </label>
-                          <input
-                            type="text"
+                          <select
                             value={job.assignedMechanicType || ''}
                             onChange={(e) =>
                               updateJobDescription(
@@ -397,8 +396,11 @@ export default function QuickCheckInPage() {
                               )
                             }
                             className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="Senior/Junior"
-                          />
+                          >
+                            <option value="">Select Type</option>
+                            <option value="Senior">Senior</option>
+                            <option value="Junior">Junior</option>
+                          </select>
                         </div>
 
                         <div>

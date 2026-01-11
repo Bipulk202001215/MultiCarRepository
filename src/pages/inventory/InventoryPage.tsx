@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -8,12 +8,19 @@ import {
   deletePart,
   searchParts,
   getLowStockParts,
-  getAllSuppliers,
   getAlertedParts,
   searchPartByCode,
 } from '@/lib/inventoryService';
+import { getSuppliersApi } from '@/lib/apiClient';
 import { Part, CreatePartData, PartCategory, GSTSlab, Supplier } from '@/lib/types';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
+import partData from '@/partData.json';
+
+interface PartDataItem {
+  PART_No: string;
+  PART_DESC: string;
+  Company: string;
+}
 
 const PART_CATEGORIES: PartCategory[] = ['OEM', 'OES', 'Local'];
 const GST_SLABS: GSTSlab[] = [5, 18, 28];
@@ -26,7 +33,7 @@ function getStockStatus(stockQty: number, minStock: number): { label: string; co
 }
 
 export default function InventoryPage() {
-  const { currentUser, userData } = useAuth();
+  const { currentUser, userData, userCompany } = useAuth();
   const [parts, setParts] = useState<Part[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +47,57 @@ export default function InventoryPage() {
   const [scannedPart, setScannedPart] = useState<Part | null>(null);
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [allParts, setAllParts] = useState<Part[]>([]);
+  
+  // Autocomplete state
+  const [filteredPartData, setFilteredPartData] = useState<PartDataItem[]>([]);
+  const [showPartDropdown, setShowPartDropdown] = useState(false);
+  const [selectedCompanyName, setSelectedCompanyName] = useState('');
+  const partDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Handle part code input change and filter data
+  const handlePartCodeChange = (value: string) => {
+    setFormData({ ...formData, partCode: value });
+    
+    if (value.trim() === '') {
+      setFilteredPartData([]);
+      setShowPartDropdown(false);
+      return;
+    }
+    
+    // Filter part data that starts with the entered value
+    const filtered = (partData as PartDataItem[]).filter((item) =>
+      item.PART_No.startsWith(value)
+    );
+    
+    setFilteredPartData(filtered.slice(0, 50)); // Limit to 50 results for performance
+    setShowPartDropdown(filtered.length > 0);
+  };
+  
+  // Handle part selection from dropdown
+  const handlePartSelect = (part: PartDataItem) => {
+    setFormData({
+      ...formData,
+      partCode: part.PART_No,
+      name: part.PART_DESC,
+    });
+    setSelectedCompanyName(part.Company);
+    setShowPartDropdown(false);
+    setFilteredPartData([]);
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (partDropdownRef.current && !partDropdownRef.current.contains(event.target as Node)) {
+        setShowPartDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState<CreatePartData>({
@@ -82,7 +140,7 @@ export default function InventoryPage() {
       }
       const [partsData, suppliersData] = await Promise.all([
         getAllParts(userData.companyId),
-        getAllSuppliers(userData.companyId),
+        getSuppliersApi(userData.companyId),
       ]);
       // Sort parts: alerted items first
       const sortedParts = [...partsData].sort((a, b) => {
@@ -94,7 +152,21 @@ export default function InventoryPage() {
       });
       setAllParts(sortedParts);
       setParts(sortedParts);
-      setSuppliers(suppliersData);
+      // Transform API response to match Supplier type
+      const transformedSuppliers = suppliersData.map((supplier: any) => ({
+        id: supplier.id || supplier.supplierId,
+        supplierId: supplier.supplierId || supplier.id,
+        companyId: supplier.companyId || userData.companyId,
+        name: supplier.name,
+        mobile: supplier.mobile || supplier.contact || '',
+        gstin: supplier.gstin,
+        address: supplier.address || '',
+        contact: supplier.contact || supplier.mobile,
+        email: supplier.email,
+        createdAt: supplier.createdAt ? new Date(supplier.createdAt) : new Date(),
+        updatedAt: supplier.updatedAt ? new Date(supplier.updatedAt) : new Date(),
+      }));
+      setSuppliers(transformedSuppliers);
       setError('');
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
@@ -222,7 +294,9 @@ export default function InventoryPage() {
         setError('Company not found. Please contact administrator to assign you to a company.');
         return;
       }
-      await createPart(formData, userData.companyId);
+      // Get company name from selectedCompanyName or fallback to userCompany name
+      const companyName = selectedCompanyName || userCompany?.name || '';
+      await createPart(formData, userData.companyId, companyName);
       setSuccess('Part created successfully');
       setShowAddForm(false);
       resetForm();
@@ -294,6 +368,9 @@ export default function InventoryPage() {
       supplierId: '',
       barcode: '',
     });
+    setSelectedCompanyName('');
+    setFilteredPartData([]);
+    setShowPartDropdown(false);
   };
 
   if (loading && parts.length === 0) {
@@ -386,21 +463,71 @@ export default function InventoryPage() {
                   {editingPart ? 'Edit Part' : 'Add New Part'}
                 </h2>
                 <form onSubmit={editingPart ? handleEditSubmit : handleCreateSubmit} className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
+                  {/* First Row: Part Code, Part Description, Company Name */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="relative" ref={partDropdownRef}>
                       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         Part Code {!editingPart && <span className="text-zinc-500">(Auto-generated if empty)</span>}
                       </label>
                       <input
                         type="text"
                         value={formData.partCode}
-                        onChange={(e) => setFormData({ ...formData, partCode: e.target.value })}
+                        onChange={(e) => handlePartCodeChange(e.target.value)}
                         className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="PART-000001 or leave empty"
+                        placeholder="Start typing part number (e.g., 9)"
                         disabled={!!editingPart}
+                        onFocus={() => {
+                          if (formData.partCode && formData.partCode.trim() !== '' && filteredPartData.length > 0) {
+                            setShowPartDropdown(true);
+                          }
+                        }}
+                      />
+                      {showPartDropdown && filteredPartData.length > 0 && (
+                        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 shadow-lg">
+                          {filteredPartData.map((part, index) => (
+                            <div
+                              key={index}
+                              onClick={() => handlePartSelect(part)}
+                              className="cursor-pointer px-4 py-2 hover:bg-blue-50 dark:hover:bg-zinc-700 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                            >
+                              <div className="font-medium text-black dark:text-zinc-50">{part.PART_No}</div>
+                              <div className="text-sm text-zinc-600 dark:text-zinc-400">{part.PART_DESC}</div>
+                              <div className="text-xs text-zinc-500 dark:text-zinc-500">Company: {part.Company}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Part Description
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter part description"
                       />
                     </div>
 
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Company Name
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedCompanyName || userCompany?.name || userData?.companyId || ''}
+                        onChange={(e) => setSelectedCompanyName(e.target.value)}
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Company Name"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Second Row: Units, Min Stock Alert, Unit Price */}
+                  <div className="grid gap-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         Units
@@ -463,6 +590,27 @@ export default function InventoryPage() {
                         }}
                         className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
+                    </div>
+                  </div>
+
+                  {/* Third Row: Supplier */}
+                  <div className="grid gap-4 md:grid-cols-1">
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Supplier
+                      </label>
+                      <select
+                        value={formData.supplierId || ''}
+                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="">Select a supplier...</option>
+                        {suppliers.map((supplier) => (
+                          <option key={supplier.id} value={supplier.id}>
+                            {supplier.name} {supplier.mobile ? `- ${supplier.mobile}` : ''}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 

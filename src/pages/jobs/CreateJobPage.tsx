@@ -369,8 +369,7 @@ export default function CreateJobPage() {
                           />
                         </td>
                         <td className="border border-zinc-200 dark:border-zinc-700 px-4 py-2">
-                          <input
-                            type="text"
+                          <select
                             value={job.assignedMechanicType || ''}
                             onChange={(e) =>
                               updateJobDescription(
@@ -380,8 +379,11 @@ export default function CreateJobPage() {
                               )
                             }
                             className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="Senior/Junior"
-                          />
+                          >
+                            <option value="">Select Type</option>
+                            <option value="Senior">Senior</option>
+                            <option value="Junior">Junior</option>
+                          </select>
                         </td>
                         <td className="border border-zinc-200 dark:border-zinc-700 px-4 py-2">
                           <input
@@ -434,23 +436,36 @@ export default function CreateJobPage() {
 
             {/* Action Buttons */}
                 <div className="flex gap-4 border-t border-zinc-200 dark:border-zinc-700 pt-6">
-                  <button
-                    type="button"
-                    disabled={loading}
-                    className="rounded-xl bg-zinc-200 dark:bg-zinc-700 px-6 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {loading ? 'Saving...' : 'Save as Draft'}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    onClick={(e) => {
-                      console.log('🖱️ Submit button clicked');
-                    }}
-                    className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {loading ? 'Submitting...' : 'Submit'}
-                  </button>
+                  {isViewMode ? (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      {loading ? 'Updating...' : 'Update'}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        className="rounded-xl bg-zinc-200 dark:bg-zinc-700 px-6 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {loading ? 'Saving...' : 'Save as Draft'}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        onClick={(e) => {
+                          console.log('🖱️ Submit button clicked');
+                        }}
+                        className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {loading ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </>
+                  )}
                 </div>
           </form>
         </div>

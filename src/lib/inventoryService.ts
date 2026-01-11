@@ -47,6 +47,9 @@ interface CreatePartRequest {
   unitsPrice: number;
   units: number;
   minStockAlert: number;
+  supplierId?: string;
+  partDesc?: string;
+  partCompany?: string;
 }
 
 /**
@@ -64,7 +67,7 @@ interface CreatePartResponse {
 /**
  * Create a part via API
  */
-export async function createPart(data: CreatePartData, companyId: string): Promise<string> {
+export async function createPart(data: CreatePartData, companyId: string, companyName?: string): Promise<string> {
   try {
     // Map form data to API request format
     const requestData: CreatePartRequest = {
@@ -72,6 +75,9 @@ export async function createPart(data: CreatePartData, companyId: string): Promi
       unitsPrice: data.unitPrice,
       units: data.stockQty,
       minStockAlert: data.minStock,
+      supplierId: data.supplierId || undefined, // Include supplier ID if provided
+      partDesc: data.name || undefined, // Include part description if provided
+      partCompany: companyName || undefined, // Include company name if provided
     };
 
     // Call API endpoint
@@ -364,9 +370,10 @@ export async function createSupplier(data: CreateSupplierData, companyId: string
   const supplier: Omit<Supplier, 'id'> = {
     companyId: finalCompanyId,
     name: data.name,
+    mobile: data.mobile || data.contact || '',
     gstin: data.gstin,
-    contact: data.contact,
-    address: data.address,
+    address: data.address || '',
+    contact: data.contact, // Keep for backward compatibility
     email: data.email,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -397,9 +404,10 @@ export async function getSupplier(supplierId: string): Promise<Supplier | null> 
     id: supplierSnap.id,
     companyId: data.companyId || '',
     name: data.name,
+    mobile: data.mobile || data.contact || '',
     gstin: data.gstin,
-    contact: data.contact,
-    address: data.address,
+    address: data.address || '',
+    contact: data.contact, // Keep for backward compatibility
     email: data.email,
     createdAt: data.createdAt?.toDate() || new Date(),
     updatedAt: data.updatedAt?.toDate() || new Date(),
@@ -429,9 +437,10 @@ export async function getAllSuppliers(companyId: string): Promise<Supplier[]> {
       id: doc.id,
       companyId: data.companyId || companyId,
       name: data.name,
+      mobile: data.mobile || data.contact || '',
       gstin: data.gstin,
-      contact: data.contact,
-      address: data.address,
+      address: data.address || '',
+      contact: data.contact, // Keep for backward compatibility
       email: data.email,
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),

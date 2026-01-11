@@ -417,6 +417,34 @@ export async function getJobsByCompanyId(companyId: string): Promise<any[]> {
 }
 
 /**
+ * Get pending jobs
+ * API Endpoint: GET {{api_base}}/jobs/pending
+ */
+export async function getPendingJobs(): Promise<any[]> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching pending jobs');
+    console.log('📤 API Endpoint: GET /jobs/pending');
+  }
+
+  try {
+    const response = await apiRequest<any[]>(`/jobs/pending`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Pending jobs API response received:', response);
+    }
+
+    return Array.isArray(response) ? response : [];
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Pending jobs API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
  * Logout API call (optional - can be used if backend requires logout endpoint)
  */
 export async function logoutApi(): Promise<void> {
@@ -577,6 +605,58 @@ export async function getInvoicesApi(companyId?: string): Promise<any[]> {
   } catch (error: any) {
     if (import.meta.env.DEV) {
       console.error('❌ Invoices API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get invoice by ID
+ * API Endpoint: GET {{api_base}}/invoices/{invoiceId}
+ */
+export async function getInvoiceByIdApi(invoiceId: string): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching invoice via API');
+    console.log('📤 API Endpoint: GET /invoices/' + invoiceId);
+  }
+
+  try {
+    const response = await apiRequest<any>(`/invoices/${invoiceId}`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Invoice API response received:', response);
+    }
+
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Invoice API error:', error);
+    }
+    throw error;
+  }
+}
+
+export async function getFullInvoiceApi(invoiceId: string): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching full invoice via API');
+    console.log('📤 API Endpoint: GET /invoices/getFullInvoice/' + invoiceId);
+  }
+
+  try {
+    const response = await apiRequest<any>(`/invoices/getFullInvoice/${invoiceId}`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Full Invoice API response received:', response);
+    }
+
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Full Invoice API error:', error);
     }
     throw error;
   }
