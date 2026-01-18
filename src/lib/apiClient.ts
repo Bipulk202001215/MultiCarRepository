@@ -14,16 +14,6 @@ declare global {
 }
 
 const getApiBaseUrl = (): string => {
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    const hasConfig = !!window.__APP_CONFIG__;
-    const hasApiUrl = !!window.__APP_CONFIG__?.VITE_API_BASE_URL;
-    const runtimeUrl = window.__APP_CONFIG__?.VITE_API_BASE_URL || '';
-    const buildTimeUrl = import.meta.env.VITE_API_BASE_URL || '';
-    const configLoaded = !!(window as any).__APP_CONFIG_LOADED__;
-    fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:getApiBaseUrl',message:'API URL resolution',data:{hasConfig,hasApiUrl,runtimeUrl,buildTimeUrl,configLoaded,windowConfig:window.__APP_CONFIG__},timestamp:Date.now(),sessionId:'debug-session',runId:'api-url-check',hypothesisId:'A'})}).catch(()=>{});
-  }
-  // #endregion agent log
   
   // Priority 1: Runtime config (from config.js injected at container startup)
   if (typeof window !== 'undefined') {
@@ -40,13 +30,6 @@ const getApiBaseUrl = (): string => {
   return import.meta.env.VITE_API_BASE_URL || '';
 };
 
-// #region agent log
-// Log the resolved API_BASE_URL at module load time
-if (typeof window !== 'undefined') {
-  const resolvedUrl = getApiBaseUrl();
-  fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:module-init',message:'API_BASE_URL resolved',data:{resolvedUrl,isEmpty:!resolvedUrl||resolvedUrl.trim()===''},timestamp:Date.now(),sessionId:'debug-session',runId:'api-url-check',hypothesisId:'B'})}).catch(()=>{});
-}
-// #endregion agent log
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -156,7 +139,6 @@ export async function apiRequest<T>(
     }
   }
   
-  // #region agent log
   const debugData = {
     endpoint,
     currentApiUrl,
@@ -167,12 +149,9 @@ export async function apiRequest<T>(
     windowConfig: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null
   };
   console.log('API Request Debug:', debugData);
-  fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:apiRequest',message:'API request initiated',data:debugData,timestamp:Date.now(),sessionId:'debug-session',runId:'api-request',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion agent log
   
   // Validate API_BASE_URL is set
   if (!currentApiUrl || currentApiUrl.trim() === '') {
-    // #region agent log
     const debugInfo = {
       endpoint,
       currentApiUrl,
@@ -181,8 +160,6 @@ export async function apiRequest<T>(
       buildTimeUrl: import.meta.env.VITE_API_BASE_URL || ''
     };
     console.error('API URL validation failed:', debugInfo);
-    fetch('http://127.0.0.1:7243/ingest/ebfeed60-7d23-44bc-b993-4f136351bb24',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:apiRequest',message:'API URL validation failed',data:debugInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'api-request',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion agent log
     const error: ApiError = {
       message: 'API base URL is not configured. Please set VITE_API_BASE_URL in your .env.local file or configure it via Docker environment variable.',
       status: 0,

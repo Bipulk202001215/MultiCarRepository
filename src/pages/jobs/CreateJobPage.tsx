@@ -38,6 +38,7 @@ export default function CreateJobPage() {
   const [vehicleNo, setVehicleNo] = useState('');
   const [mobile, setMobile] = useState('');
   const [kmReading, setKmReading] = useState('');
+  const [vehicleModel, setVehicleModel] = useState('');
 
   // Job descriptions - start with 4 rows for new jobs, will be populated from API when viewing existing job
   const [jobDescriptions, setJobDescriptions] = useState<JobDescription[]>(
@@ -68,6 +69,7 @@ export default function CreateJobPage() {
         setVehicleNo(job.vehicleNumber || '');
         setMobile(job.mobileNumber || '');
         setKmReading(String(job.kmReading || ''));
+        setVehicleModel(job.vehicleModel || '');
         
         // Load job descriptions - only rows with data
         const apiJobDescriptions = job.jobDetailId?.jobDescription || [];
@@ -172,6 +174,7 @@ export default function CreateJobPage() {
         vehicleNumber: vehicleNo.trim() || '',
         kmReading: kmReading.trim() ? parseInt(kmReading.trim(), 10) : 0,
         mobileNumber: mobile.trim() || '',
+        vehicleModel: vehicleModel.trim() || '',
         jobDate: currentDate.toISOString(),
         status: 'PENDING',
         checkinTime: currentDate.toISOString(),
@@ -306,6 +309,19 @@ export default function CreateJobPage() {
                     placeholder="+1234567890"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Vehicle Model
+                  </label>
+                  <input
+                    type="text"
+                    value={vehicleModel}
+                    onChange={(e) => setVehicleModel(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter vehicle model"
+                  />
+                </div>
               </div>
             </div>
 
@@ -326,9 +342,6 @@ export default function CreateJobPage() {
                       </th>
                       <th className="border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-left text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                         Assigned Mechanic Type
-                      </th>
-                      <th className="border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-left text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                        Estimated Time
                       </th>
                       <th className="border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                         Action
@@ -384,17 +397,6 @@ export default function CreateJobPage() {
                             <option value="Senior">Senior</option>
                             <option value="Junior">Junior</option>
                           </select>
-                        </td>
-                        <td className="border border-zinc-200 dark:border-zinc-700 px-4 py-2">
-                          <input
-                            type="text"
-                            value={job.estimatedTime || ''}
-                            onChange={(e) =>
-                              updateJobDescription(index, 'estimatedTime', e.target.value)
-                            }
-                            className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="2 hours"
-                          />
                         </td>
                         <td className="border border-zinc-200 dark:border-zinc-700 px-4 py-2 text-center">
                           <button

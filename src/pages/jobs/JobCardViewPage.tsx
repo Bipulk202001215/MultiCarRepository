@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { getJobsByCompanyId } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCompanyConfig } from '@/lib/companyConfigService';
 
 export default function JobCardViewPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -11,12 +12,23 @@ export default function JobCardViewPage() {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<any | null>(null);
   const [error, setError] = useState('');
+  const [companyConfig, setCompanyConfig] = useState<any>(null);
 
   useEffect(() => {
     if (jobId && userCompany) {
       loadJob();
+      loadCompanyConfig();
     }
   }, [jobId, userCompany]);
+
+  const loadCompanyConfig = async () => {
+    try {
+      const config = await getCompanyConfig();
+      setCompanyConfig(config);
+    } catch (err) {
+      console.error('Failed to load company config:', err);
+    }
+  };
 
   const loadJob = async () => {
     try {
@@ -117,7 +129,8 @@ export default function JobCardViewPage() {
       <div className="p-8">
         <div className="mx-auto max-w-4xl">
           {/* Action Buttons - Hidden when printing */}
-          <div className="mb-6 flex gap-4 no-print">
+          <div className="flex style={{ marginBottom: '10px', marginLeft: '10px' }}
+          no-print">
             <button
               onClick={handlePrint}
               className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
@@ -147,8 +160,21 @@ export default function JobCardViewPage() {
           {/* Job Card View */}
           <div className="job-card-view">
             <div className="job-card-container bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm p-10 shadow-2xl border border-white/20 dark:border-zinc-700/50 rounded-2xl">
+              {/* Logo on Left Side */}
+              <div className="mb-0 flex flex-col items-start">
+                <img 
+                  src="/autonation-logo.svg" 
+                  alt="24X7 AutoNation Logo" 
+                  className="h-32 w-auto object-contain"
+                  style={{ maxHeight: '128px' }}
+                />
+                <div className="text-sm text-black font-semibold" style={{ marginTop: '-38px', marginLeft: '10px' }}>
+                  Mobile: {companyConfig?.phone || '86268-16424'}
+                </div>
+              </div>
+
               {/* Title */}
-              <h1 className="text-center text-3xl font-bold uppercase underline mb-8 text-black">
+              <h1 className="text-center text-3xl font-bold uppercase underline mb-8 text-black -mt-4">
                 JOB CARD
               </h1>
 
@@ -201,9 +227,9 @@ export default function JobCardViewPage() {
                       <th className="border border-black p-2 text-left text-xs font-bold bg-gray-100" style={{ width: '25%' }}>
                         Service Type
                       </th>
-                      <th className="border border-black p-2 text-left text-xs font-bold bg-gray-100" style={{ width: '25%' }}>
+                      {/* <th className="border border-black p-2 text-left text-xs font-bold bg-gray-100" style={{ width: '25%' }}>
                         Estimated Time
-                      </th>
+                      </th> */}
                     </tr>
                   </thead>
                   <tbody>
@@ -218,9 +244,9 @@ export default function JobCardViewPage() {
                               <td className="border border-black p-2 text-xs text-black">
                                 {desc.serviceType || ''}
                               </td>
-                              <td className="border border-black p-2 text-xs text-black">
+                              {/* <td className="border border-black p-2 text-xs text-black">
                                 {desc.estimatedTime || ''}
-                              </td>
+                              </td> */}
                             </tr>
                           ))
                       : null}

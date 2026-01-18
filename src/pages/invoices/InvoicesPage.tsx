@@ -45,6 +45,7 @@ export default function InvoicesPage() {
   const [jobDetails, setJobDetails] = useState<any>(null);
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [additionalDetails, setAdditionalDetails] = useState<any>(null);
 
   // Jobs
   const [selectedJobId, setSelectedJobId] = useState<string>('');
@@ -52,6 +53,10 @@ export default function InvoicesPage() {
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [showJobDropdown, setShowJobDropdown] = useState(false);
   const jobDropdownRef = useRef<HTMLDivElement | null>(null);
+  
+  // Additional Details
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerGstin, setCustomerGstin] = useState<string>('');
 
   // Invoice items
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
@@ -96,6 +101,23 @@ export default function InvoicesPage() {
     setInvoiceItems(invoiceItems.map(item =>
       item.partCode === partCode ? { ...item, discount: finalDiscount } : item
     ));
+  };
+
+  // Function to get part description from partData.json by matching part code
+  const getPartDescription = (partCode: string): string => {
+    if (!partCode || partCode.trim() === '') return '';
+    const trimmedPartCode = partCode.trim();
+    // Try exact match first
+    let matchedPart = (partData as PartDataItem[]).find(
+      (part) => part.PART_No === trimmedPartCode
+    );
+    // If no exact match, try case-insensitive match
+    if (!matchedPart) {
+      matchedPart = (partData as PartDataItem[]).find(
+        (part) => part.PART_No && part.PART_No.trim().toUpperCase() === trimmedPartCode.toUpperCase()
+      );
+    }
+    return matchedPart?.PART_DESC || '';
   };
 
   const updatePartCode = (oldPartCode: string, newPartCode: string) => {
@@ -234,7 +256,7 @@ export default function InvoicesPage() {
 
     try {
       // Prepare invoice data in the exact format required
-      const invoiceData = {
+      const invoiceData: any = {
         jobId: selectedJobId.trim(),
         companyId: userData.companyId.trim(),
         paymentStatus: formData.paymentStatus,
@@ -251,6 +273,17 @@ export default function InvoicesPage() {
           return itemData;
         }),
       };
+      
+      // Add additionalDetails if customerName or customerGstin is provided
+      if (customerName.trim() || customerGstin.trim()) {
+        invoiceData.additionalDetails = {};
+        if (customerName.trim()) {
+          invoiceData.additionalDetails.name = customerName.trim();
+        }
+        if (customerGstin.trim()) {
+          invoiceData.additionalDetails.customerGstin = customerGstin.trim();
+        }
+      }
 
       // Log the data being sent (for debugging)
       if (import.meta.env.DEV) {
@@ -305,6 +338,8 @@ export default function InvoicesPage() {
           paymentStatus: 'PENDING',
           paymentMode: 'UPI',
         });
+        setCustomerName('');
+        setCustomerGstin('');
         setSuccess('');
       }, 2000);
     } catch (err: any) {
@@ -326,6 +361,8 @@ export default function InvoicesPage() {
       paymentStatus: 'PENDING',
       paymentMode: 'UPI',
     });
+    setCustomerName('');
+    setCustomerGstin('');
     setError('');
     setSuccess('');
   };
@@ -415,27 +452,53 @@ export default function InvoicesPage() {
         setJobDetails(fullInvoice.jobDetails || fullInvoice.job);
       }
       
+      // Extract additionalDetails from full invoice response
+      if (fullInvoice.additionalDetails) {
+        setAdditionalDetails(fullInvoice.additionalDetails);
+      }
+      
       // Extract items with full details from API response
-      // The API should return items with name, hsnCode, unitPrice, etc.
+      // The API should return items with all required fields
       if (fullInvoice.items && Array.isArray(fullInvoice.items)) {
-        const itemsWithDetails = fullInvoice.items.map((item: any) => ({
-          partCode: item.partCode || item.partcode || '',
-          units: item.units || item.quantity || 0,
-          name: item.name || item.partName || item.partCode || '',
-          hsnCode: item.hsnCode || item.hsn || item.hsncode || '',
-          unitPrice: item.unitPrice || item.rate || item.price || 0,
-          gstSlab: item.gstSlab || item.gst || 5,
-        }));
+        const itemsWithDetails = fullInvoice.items.map((item: any) => {
+          const partCode = item.partCode || item.partcode || '';
+          // Prioritize partData.json lookup over API's partDescription
+          const partDescriptionFromJson = getPartDescription(partCode);
+          const partDescription = partDescriptionFromJson || item.partDescription || item.name || item.partName || partCode || '';
+          return {
+            partCode: partCode,
+            units: item.units || item.quantity || 0,
+            partDescription: partDescription,
+            unitsPrice: item.unitsPrice || item.unitPrice || item.rate || item.price || 0,
+            totalPrice: item.totalPrice || (item.unitsPrice || item.unitPrice || 0) * (item.units || 0),
+            discountPercentage: item.discountPercentage || item.discount || 0,
+            discountedPrice: item.discountedPrice || item.totalPrice || ((item.unitsPrice || item.unitPrice || 0) * (item.units || 0)),
+            name: item.name || item.partName || partCode || '',
+            hsnCode: item.hsnCode || item.hsn || item.hsncode || '',
+            unitPrice: item.unitPrice || item.rate || item.price || 0,
+            gstSlab: item.gstSlab || item.gst || 9,
+          };
+        });
         setPdfItems(itemsWithDetails);
       } else {
         // Fallback to existing items if API doesn't return formatted items
-        setPdfItems(editingInvoice.items.map(item => ({
-          ...item,
-          name: item.partCode,
-          hsnCode: '',
-          unitPrice: 0,
-          gstSlab: 5,
-        })));
+        setPdfItems(editingInvoice.items.map(item => {
+          const partCode = item.partCode || '';
+          const partDescription = getPartDescription(partCode) || partCode;
+          return {
+            ...item,
+            partCode: partCode,
+            partDescription: partDescription,
+            unitsPrice: 0,
+            totalPrice: 0,
+            discountPercentage: 0,
+            discountedPrice: 0,
+            name: partCode,
+            hsnCode: '',
+            unitPrice: 0,
+            gstSlab: 9,
+          };
+        }));
       }
       
       // Update form data with values from full invoice if available
@@ -575,16 +638,32 @@ export default function InvoicesPage() {
                             setJobDetails(fullInvoice.jobDetails || fullInvoice.job);
                           }
                           
+                          // Extract additionalDetails from full invoice response
+                          if (fullInvoice.additionalDetails) {
+                            setAdditionalDetails(fullInvoice.additionalDetails);
+                          }
+                          
                           // Extract items with full details from API response
                           if (fullInvoice.items && Array.isArray(fullInvoice.items)) {
-                            const itemsWithDetails = fullInvoice.items.map((item: any) => ({
-                              partCode: item.partCode || item.partcode || '',
-                              units: item.units || item.quantity || 0,
-                              name: item.name || item.partName || item.partCode || '',
-                              hsnCode: item.hsnCode || item.hsn || item.hsncode || '',
-                              unitPrice: item.unitPrice || item.rate || item.price || 0,
-                              gstSlab: item.gstSlab || item.gst || 5,
-                            }));
+                            const itemsWithDetails = fullInvoice.items.map((item: any) => {
+                              const partCode = item.partCode || item.partcode || '';
+                              // Prioritize partData.json lookup over API's partDescription
+                              const partDescriptionFromJson = getPartDescription(partCode);
+                              const partDescription = partDescriptionFromJson || item.partDescription || item.name || item.partName || partCode || '';
+                              return {
+                                partCode: partCode,
+                                units: item.units || item.quantity || 0,
+                                partDescription: partDescription,
+                                unitsPrice: item.unitsPrice || item.unitPrice || item.rate || item.price || 0,
+                                totalPrice: item.totalPrice || (item.unitsPrice || item.unitPrice || 0) * (item.units || 0),
+                                discountPercentage: item.discountPercentage || item.discount || 0,
+                                discountedPrice: item.discountedPrice || item.totalPrice || ((item.unitsPrice || item.unitPrice || 0) * (item.units || 0)),
+                                name: item.name || item.partName || partCode || '',
+                                hsnCode: item.hsnCode || item.hsn || item.hsncode || '',
+                                unitPrice: item.unitPrice || item.rate || item.price || 0,
+                                gstSlab: item.gstSlab || item.gst || 9,
+                              };
+                            });
                             setPdfItems(itemsWithDetails);
                           } else {
                             // Fallback to existing items
@@ -593,7 +672,7 @@ export default function InvoicesPage() {
                               name: item.partCode,
                               hsnCode: '',
                               unitPrice: 0,
-                              gstSlab: 5,
+                              gstSlab: 9,
                             })));
                           }
                           
@@ -732,6 +811,14 @@ export default function InvoicesPage() {
                                   paymentStatus: invoiceDetails.paymentStatus || invoice.paymentStatus,
                                   paymentMode: invoiceDetails.paymentMode || invoice.paymentMode,
                                 });
+                                // Load additionalDetails if available
+                                if (invoiceDetails.additionalDetails) {
+                                  setCustomerName(invoiceDetails.additionalDetails.name || '');
+                                  setCustomerGstin(invoiceDetails.additionalDetails.customerGstin || '');
+                                } else {
+                                  setCustomerName('');
+                                  setCustomerGstin('');
+                                }
                                 
                                 // Switch to form view
                                 setViewMode('form');
@@ -751,6 +838,8 @@ export default function InvoicesPage() {
                                   paymentStatus: invoice.paymentStatus,
                                   paymentMode: invoice.paymentMode,
                                 });
+                                setCustomerName('');
+                                setCustomerGstin('');
                                 setViewMode('form');
                               } finally {
                                 setLoading(false);
@@ -774,7 +863,9 @@ export default function InvoicesPage() {
               <h2 className="mb-4 text-xl font-semibold text-black dark:text-zinc-50">
                 Job Information
               </h2>
-              <div>
+              
+              {/* First Row: Job ID (Full Width) */}
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Job ID <span className="text-red-500">*</span>
                 </label>
@@ -813,6 +904,37 @@ export default function InvoicesPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+              
+              {/* Second Row: Customer Name and Customer GSTIN (Half Width Each) */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Customer Name */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter customer name (optional)"
+                  />
+                </div>
+                
+                {/* Customer GSTIN */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Customer GSTIN
+                  </label>
+                  <input
+                    type="text"
+                    value={customerGstin}
+                    onChange={(e) => setCustomerGstin(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter customer GSTIN (optional)"
+                  />
                 </div>
               </div>
             </div>
@@ -1082,8 +1204,8 @@ export default function InvoicesPage() {
                             {companyConfig?.name || '24X7 AUTO NATION'}
                           </h1>
                         </div>
-                        <div className="text-center text-sm mb-4">
-                          {companyConfig?.address || 'BALOO P.O. SALIANA TEH. PALAMPUR DISTT. KANGRA (H.P.)'}
+                        <div className="text-center text-sm mb-4 italic">
+                          {companyConfig?.address || 'Baloo P.O. Saliana, Tehsil Panchrukhi, Distt. Kangra HP-176103'}
                         </div>
                         <div className="text-center mb-4">
                           <h2 className="text-2xl font-bold">INVOICE</h2>
@@ -1096,41 +1218,50 @@ export default function InvoicesPage() {
                             <span className="font-semibold">Date:</span> {editingInvoice.submittedAt.toLocaleDateString('en-IN')}
                           </div>
                         </div>
-                        <div className="mb-4">
-                          <span className="font-semibold">Name.</span> {jobDetails?.customerName || 'N/A'}
+                        <div className="flex justify-between mb-4">
+                          <div>
+                            <span className="font-semibold">Name.</span> {additionalDetails?.name || jobDetails?.customerName || 'N/A'}
+                          </div>
+                          {additionalDetails?.customerGstin && (
+                            <div>
+                              <span className="font-semibold">Customer GSTIN:</span> {additionalDetails.customerGstin}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Items Table */}
-                      <table className="mb-4">
+                      <table className="mb-4" style={{ fontSize: '10px' }}>
                         <thead>
                           <tr>
-                            <th style={{ width: '5%' }}>S. No.</th>
-                            <th style={{ width: '45%' }}>DESCRIPTION OF GOODS</th>
-                            <th style={{ width: '10%' }}>Qty</th>
-                            <th style={{ width: '15%' }}>Rate</th>
-                            <th style={{ width: '25%' }}>Amount</th>
+                            <th style={{ width: '8%' }}>S. No.</th>
+                            <th style={{ width: '15%' }}>Part Code</th>
+                            <th style={{ width: '25%' }}>Part Desc</th>
+                            <th style={{ width: '12%' }}>Quantity (Unit)</th>
+                            <th style={{ width: '15%' }}>Rate (Unit Price)</th>
+                            <th style={{ width: '25%' }}>Total Price (Discounted Price)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {pdfItems.map((item, index) => {
-                            const amount = item.unitPrice * item.units;
+                            const partCode = item.partCode || '';
+                            const units = item.units || 0;
+                            // Always get fresh description from partData.json to ensure accuracy
+                            const partDescriptionFromJson = getPartDescription(partCode);
+                            const partDescription = partDescriptionFromJson || item.partDescription || item.name || '';
+                            const unitsPrice = item.unitsPrice || item.unitPrice || 0;
+                            const totalPrice = item.totalPrice || (unitsPrice * units);
+                            const discountPercentage = item.discountPercentage || 0;
+                            const discountedPrice = item.discountedPrice || totalPrice;
+                            
                             return (
                               <tr key={index}>
                                 <td>{index + 1}</td>
-                                <td>
-                                  {item.name}
-                                  <br />
-                                  <span className="text-xs">HSN: {item.hsnCode || 'N/A'}</span>
-                                </td>
-                                <td>{item.units}</td>
-                                <td>₹{item.unitPrice.toFixed(2)}</td>
-                                <td>
-                                  <div className="flex justify-between">
-                                    <span>Rs. {Math.floor(amount)}</span>
-                                    <span>P. {Math.round((amount - Math.floor(amount)) * 100)}</span>
-                                  </div>
-                                </td>
+                                <td>{partCode}</td>
+                                <td>{partDescription}</td>
+                                <td>{units}</td>
+                                <td>₹{unitsPrice.toFixed(2)}</td>
+                                <td>₹{discountedPrice.toFixed(2)}</td>
                               </tr>
                             );
                           })}
@@ -1142,6 +1273,7 @@ export default function InvoicesPage() {
                               <td>&nbsp;</td>
                               <td>&nbsp;</td>
                               <td>&nbsp;</td>
+                              <td>&nbsp;</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1149,8 +1281,11 @@ export default function InvoicesPage() {
 
                       {/* Summary Section */}
                       {(() => {
-                        const subtotal = formData.subtotal || pdfItems.reduce((sum, item) => sum + (item.unitPrice * item.units), 0);
-                        const gstSlab = pdfItems[0]?.gstSlab || 5;
+                        const subtotal = formData.subtotal || pdfItems.reduce((sum, item) => {
+                          const discountedPrice = item.discountedPrice || item.totalPrice || ((item.unitsPrice || item.unitPrice || 0) * (item.units || 0));
+                          return sum + discountedPrice;
+                        }, 0);
+                        const gstSlab = pdfItems[0]?.gstSlab || 9;
                         const cgst = formData.cgst || 0;
                         const sgst = formData.sgst || 0;
                         const igst = formData.igst || 0;
@@ -1165,6 +1300,12 @@ export default function InvoicesPage() {
                                 <p className="text-sm border-b border-black pb-1" style={{ minHeight: '20px' }}>
                                   {numberToWords(grandTotal)}
                                 </p>
+                              </div>
+                              <div className="mt-4 text-xs">
+                                <p className="mb-1"><span className="font-semibold">A/c Name:</span> 24X7 AUTO NATION</p>
+                                <p className="mb-1"><span className="font-semibold">Our Bank:</span> S.B.I. PANCHRUKHI</p>
+                                <p className="mb-1"><span className="font-semibold">A/No.: No.:</span> 44332175284</p>
+                                <p className="mb-1"><span className="font-semibold">IFSC Code:</span> SBIN0003241</p>
                               </div>
                               <div className="mt-4">
                                 <p className="text-xs">E. & O.E.</p>
@@ -1209,16 +1350,7 @@ export default function InvoicesPage() {
 
                       {/* Footer */}
                       <div className="flex justify-between mt-8">
-                        <div>
-                          <p className="text-xs">Bank Details (if applicable)</p>
-                          {companyConfig?.bankDetails && (
-                            <div className="text-xs mt-1">
-                              {companyConfig.bankDetails.bankName && <p>Bank: {companyConfig.bankDetails.bankName}</p>}
-                              {companyConfig.bankDetails.accountNumber && <p>A/C: {companyConfig.bankDetails.accountNumber}</p>}
-                              {companyConfig.bankDetails.ifscCode && <p>IFSC: {companyConfig.bankDetails.ifscCode}</p>}
-                            </div>
-                          )}
-                        </div>
+                        <div></div>
                         <div className="text-right">
                           <p className="mb-8">Signature</p>
                         </div>
