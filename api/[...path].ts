@@ -6,6 +6,14 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // Log the request for debugging
+  console.log('API Proxy Request:', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    path: req.query.path,
+  });
+
   // Get the API path from the request
   // The path comes from the catch-all route [...path]
   const path = Array.isArray(req.query.path) 
@@ -14,6 +22,8 @@ export default async function handler(
 
   // Construct the backend URL (path already includes the endpoint like "auth/login")
   const backendUrl = `${BACKEND_URL}/api/${path}`;
+  
+  console.log('Proxying to:', backendUrl);
 
   // Forward query parameters (excluding 'path' which is part of the route)
   const queryParams: Record<string, string> = {};
