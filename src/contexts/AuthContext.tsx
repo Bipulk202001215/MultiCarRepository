@@ -157,10 +157,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await loginApi(email, password);
-    
-    // Debug: Log the full login response to see what fields are available
-    console.log('Login response:', response);
+    try {
+      console.log('🔄 Attempting login for:', email);
+      const response = await loginApi(email, password);
+      
+      // Debug: Log the full login response to see what fields are available
+      console.log('✅ Login API response received:', response);
     
     // Store user data in localStorage
     localStorage.setItem('user_data', JSON.stringify(response));
@@ -254,6 +256,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserRoles([]);
         setUserPermissions([]);
       }
+    }
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        statusText: error.statusText,
+      });
+      throw error; // Re-throw to be caught by LoginPage
     }
   };
 
