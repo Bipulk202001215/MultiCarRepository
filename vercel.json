@@ -6,7 +6,7 @@
   "devCommand": "npm run dev",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api|assets|_next).*)",
       "destination": "/index.html"
     }
   ],
