@@ -98,6 +98,7 @@ export default async function handler(
     if (req.headers['x-requested-with']) {
       headers['X-Requested-With'] = req.headers['x-requested-with'] as string;
     }
+    
 
     console.log('Forwarding request:', {
       method: req.method,
