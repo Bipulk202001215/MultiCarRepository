@@ -82,7 +82,7 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
 
   return (
     <div className="invoice-print bg-white p-8 text-black" style={{ fontFamily: 'Arial, sans-serif' }}>
-      <style jsx>{`
+      <style>{`
         @media print {
           .no-print {
             display: none;
@@ -253,4 +253,7 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
     </div>
   );
 }
+
+
+
 

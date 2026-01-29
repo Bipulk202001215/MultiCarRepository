@@ -1,0 +1,85 @@
+<svg
+  width="300"
+  height="200"
+  viewBox="0 0 900 300"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <style>
+      .blue { fill: #2f5fa7; }
+      .orange { fill: #d08a3c; }
+      .white { fill: #ffffff; }
+      .textBlue { fill: #2f5fa7; font-weight: 700; }
+      .textOrange { fill: #d08a3c; font-weight: 700; }
+    </style>
+  </defs>
+
+  <!-- ===== TOP ROUND ICON ===== -->
+  <g transform="translate(410,10)">
+    <circle cx="70" cy="70" r="68" class="blue"/>
+    <circle cx="70" cy="70" r="60" fill="none" stroke="#ffffff" stroke-width="4"/>
+
+    <!-- Car -->
+    <path d="M35 35 Q70 18 105 35" fill="none" stroke="#ffffff" stroke-width="4"/>
+    <circle cx="50" cy="36" r="4" class="white"/>
+    <circle cx="90" cy="36" r="4" class="white"/>
+
+    <!-- Spanners -->
+    <g transform="translate(70 75)">
+      <g transform="rotate(45)">
+        <rect x="-6" y="-40" width="12" height="70" rx="5" class="white"/>
+        <path d="M-16 -42 Q0 -60 16 -42 Z" class="white"/>
+      </g>
+      <g transform="rotate(-45)">
+        <rect x="-6" y="-40" width="12" height="70" rx="5" class="white"/>
+        <path d="M-16 -42 Q0 -60 16 -42 Z" class="white"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ===== CLEAR STYLED A ===== -->
+  <g transform="translate(40,30)">
+    <!-- A body -->
+    <path
+      d="M60 220 L130 50 L200 220 Z"
+      fill="#2f5fa7"
+    />
+
+    <!-- A inner cut -->
+    <path
+      d="M105 220 L130 120 L155 220 Z"
+      fill="#f0f0f0"
+    />
+
+    <!-- Orange swoosh -->
+    <path
+      d="M90 185 Q145 135 210 120"
+      fill="none"
+      stroke="#d08a3c"
+      stroke-width="18"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- ===== TEXT ===== -->
+  <text x="230" y="215" font-size="96" font-family="Arial, Helvetica, sans-serif" class="textBlue">
+    utoNation
+  </text>
+
+  <text x="330" y="145" font-size="44" font-family="Arial, Helvetica, sans-serif" class="textOrange">
+    24x7
+  </text>
+
+  <!-- ===== TAGLINE ===== -->
+  <text
+    x="280"
+    y="260"
+    font-size="26"
+    font-family="Arial, Helvetica, sans-serif"
+    fill="#444"
+    letter-spacing="1.6"
+    font-weight="600"
+  >
+    WE VALUE YOUR VEHICLES
+  </text>
+</svg>

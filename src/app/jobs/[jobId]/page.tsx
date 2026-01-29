@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { getJobCard, updateJobCard, searchVehicle } from '@/lib/jobService';
+import { getJobCard, searchVehicle } from '@/lib/jobService';
+import { updateJobApi } from '@/lib/apiClient';
 import { ServiceType, JobDescription, JobStatus, CreateJobCardData, JobCard } from '@/lib/types';
 
 const SERVICE_TYPES: ServiceType[] = [
@@ -212,11 +213,12 @@ export default function JobDetailPage() {
         status: updateStatus,
       };
 
-      await updateJobCard(jobId, updateData);
+      // Use API to update job
+      await updateJobApi(jobId, updateData);
 
       setStatus(updateStatus);
       setSuccess(
-        `Job card ${finalStatus === 'DRAFT' ? 'saved as draft' : 'submitted'} successfully!`
+        `Job card updated successfully!`
       );
 
       // Reload job to get updated data
@@ -476,8 +478,7 @@ export default function JobDetailPage() {
                           <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             Assigned Mechanic Type
                           </label>
-                          <input
-                            type="text"
+                          <select
                             value={job.assignedMechanicType || ''}
                             onChange={(e) =>
                               updateJobDescription(
@@ -487,8 +488,11 @@ export default function JobDetailPage() {
                               )
                             }
                             className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="Senior/Junior"
-                          />
+                          >
+                            <option value="">Select Type</option>
+                            <option value="Senior">Senior</option>
+                            <option value="Junior">Junior</option>
+                          </select>
                         </div>
 
                         <div>
@@ -540,9 +544,9 @@ export default function JobDetailPage() {
                     handleSubmit(e, 'DRAFT');
                   }}
                   disabled={saving}
-                  className="rounded-md bg-zinc-200 dark:bg-zinc-700 px-6 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? 'Saving...' : 'Save as Draft'}
+                  {saving ? 'Updating...' : 'Update'}
                 </button>
                 <button
                   type="button"

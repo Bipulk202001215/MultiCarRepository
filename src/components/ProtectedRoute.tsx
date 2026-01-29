@@ -1,22 +1,20 @@
-'use client';
-
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole, Permission } from '@/lib/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: UserRole; // Legacy - for backward compatibility
-  allowedRoles?: UserRole[]; // Legacy - for backward compatibility
+  requiredRole?: UserRole;
+  allowedRoles?: UserRole[];
   requiredPermission?: Permission;
   allowedPermissions?: Permission[];
   requireAdmin?: boolean;
   fallbackPath?: string;
-  allowInitialSetup?: boolean; // Allow access during initial setup (no permissions yet)
+  allowInitialSetup?: boolean;
 }
 
-export function ProtectedRoute({
+export default function ProtectedRoute({
   children,
   requiredRole,
   allowedRoles,
@@ -35,9 +33,8 @@ export function ProtectedRoute({
     loading, 
     isUserAdmin 
   } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
   
-  // Check if user has no permissions (initial setup state) OR has ADMIN role (legacy)
   const hasAdminRole = userRole === 'ADMIN' || (userRoles && userRoles.some(r => r.name === 'ADMIN'));
   const isInitialSetup = allowInitialSetup && 
     ((userPermissions && userPermissions.length === 0) && (userRoles && userRoles.length === 0)) ||
@@ -46,23 +43,19 @@ export function ProtectedRoute({
   useEffect(() => {
     if (loading) return;
 
-    // Check if user is authenticated
     if (!currentUser) {
-      router.push('/login');
+      navigate('/login');
       return;
     }
 
-    // Check admin requirement
     if (requireAdmin && !isUserAdmin) {
-      router.push(fallbackPath);
+      navigate(fallbackPath);
       return;
     }
 
-    // Check permission-based access (new system - takes priority)
-    // Allow access during initial setup if allowInitialSetup is true
     if (requiredPermission) {
       if (!isInitialSetup && !hasPermission(requiredPermission)) {
-        router.push(fallbackPath);
+        navigate(fallbackPath);
         return;
       }
     }
@@ -70,16 +63,15 @@ export function ProtectedRoute({
     if (allowedPermissions && allowedPermissions.length > 0) {
       const hasAnyPermission = allowedPermissions.some(perm => hasPermission(perm));
       if (!isInitialSetup && !hasAnyPermission) {
-        router.push(fallbackPath);
+        navigate(fallbackPath);
         return;
       }
     }
 
-    // Check role-based access (legacy - for backward compatibility)
     if (requiredRole) {
       const hasRole = userRoles.some(role => role.name === requiredRole) || userRole === requiredRole;
       if (!hasRole) {
-        router.push(fallbackPath);
+        navigate(fallbackPath);
         return;
       }
     }
@@ -88,7 +80,7 @@ export function ProtectedRoute({
       const hasAnyRole = userRoles.some(role => allowedRoles.includes(role.name)) || 
                          (userRole && allowedRoles.includes(userRole));
       if (!hasAnyRole) {
-        router.push(fallbackPath);
+        navigate(fallbackPath);
         return;
       }
     }
@@ -105,12 +97,12 @@ export function ProtectedRoute({
     allowedRoles,
     requiredPermission,
     allowedPermissions,
-    router, 
+    navigate, 
     fallbackPath,
-    allowInitialSetup
+    allowInitialSetup,
+    isInitialSetup
   ]);
 
-  // Show loading state while checking auth
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -121,22 +113,18 @@ export function ProtectedRoute({
     );
   }
 
-  // Don't render if user is not authenticated
   if (!currentUser) {
     return null;
   }
 
-  // Don't render if admin required but user is not admin
   if (requireAdmin && !isUserAdmin) {
     return null;
   }
 
-  // Don't render if permission required but user doesn't have it (unless initial setup)
   if (requiredPermission && !isInitialSetup && !hasPermission(requiredPermission)) {
     return null;
   }
 
-  // Don't render if allowed permissions specified but user doesn't have any (unless initial setup)
   if (allowedPermissions && allowedPermissions.length > 0) {
     const hasAnyPermission = allowedPermissions.some(perm => hasPermission(perm));
     if (!isInitialSetup && !hasAnyPermission) {
@@ -144,7 +132,6 @@ export function ProtectedRoute({
     }
   }
 
-  // Don't render if specific role required but user doesn't have it (legacy)
   if (requiredRole) {
     const hasRole = userRoles.some(role => role.name === requiredRole) || userRole === requiredRole;
     if (!hasRole) {
@@ -152,7 +139,6 @@ export function ProtectedRoute({
     }
   }
 
-  // Don't render if allowed roles specified but user role not in list (legacy)
   if (allowedRoles && allowedRoles.length > 0) {
     const hasAnyRole = userRoles.some(role => allowedRoles.includes(role.name)) || 
                        (userRole && allowedRoles.includes(userRole));
@@ -163,4 +149,3 @@ export function ProtectedRoute({
 
   return <>{children}</>;
 }
-

@@ -5,36 +5,32 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  getAllSuppliers,
-  createSupplier,
-  updateSupplier,
-  deleteSupplier,
-} from '@/lib/inventoryService';
+  getSuppliersApi,
+  createSupplierApi,
+  updateSupplierApi,
+  deleteSupplierApi,
+} from '@/lib/apiClient';
 import { Supplier, CreateSupplierData } from '@/lib/types';
-
-function validateGSTIN(gstin: string): boolean {
-  // GSTIN format: 15 alphanumeric characters
-  const gstinRegex = /^[0-9A-Z]{15}$/;
-  return gstinRegex.test(gstin.toUpperCase());
-}
 
 export default function SuppliersPage() {
   const { currentUser, userData } = useAuth();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<CreateSupplierData>({
     name: '',
+    mobile: '',
     gstin: '',
-    contact: '',
     address: '',
-    email: '',
+    companyId: '',
   });
 
   useEffect(() => {
@@ -43,6 +39,21 @@ export default function SuppliersPage() {
     }
   }, [userData?.companyId]);
 
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      const filtered = allSuppliers.filter(
+        (supplier) =>
+          supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          supplier.mobile.includes(searchTerm) ||
+          supplier.gstin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          supplier.address.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setSuppliers(filtered);
+    } else {
+      setSuppliers(allSuppliers);
+    }
+  }, [searchTerm, allSuppliers]);
+
   const loadSuppliers = async () => {
     try {
       setLoading(true);
@@ -50,8 +61,21 @@ export default function SuppliersPage() {
         setError('Company not found');
         return;
       }
-      const suppliersData = await getAllSuppliers(userData.companyId);
-      setSuppliers(suppliersData);
+      const suppliersData = await getSuppliersApi(userData.companyId);
+      // Transform API response to match Supplier type
+      const transformedSuppliers = suppliersData.map((supplier: any) => ({
+        id: supplier.id || supplier.supplierId,
+        supplierId: supplier.supplierId || supplier.id,
+        companyId: supplier.companyId || userData.companyId,
+        name: supplier.name,
+        mobile: supplier.mobile,
+        gstin: supplier.gstin,
+        address: supplier.address,
+        createdAt: supplier.createdAt,
+        updatedAt: supplier.updatedAt,
+      }));
+      setAllSuppliers(transformedSuppliers);
+      setSuppliers(transformedSuppliers);
       setError('');
     } catch (err: any) {
       setError(err.message || 'Failed to load suppliers');
@@ -65,35 +89,22 @@ export default function SuppliersPage() {
     setError('');
     setSuccess('');
 
-    // Validation
-    if (!formData.name.trim()) {
-      setError('Supplier name is required');
-      return;
-    }
-    if (!formData.gstin.trim()) {
-      setError('GSTIN is required');
-      return;
-    }
-    if (!validateGSTIN(formData.gstin)) {
-      setError('Invalid GSTIN format. GSTIN must be 15 alphanumeric characters.');
-      return;
-    }
-
     try {
       if (!userData?.companyId || userData.companyId.trim() === '') {
         setError('Company not found. Please contact administrator to assign you to a company.');
         return;
       }
-      await createSupplier({
-        ...formData,
-        gstin: formData.gstin.toUpperCase(),
+      // Send exactly the fields required by the API
+      const supplierData = {
         name: formData.name.trim(),
-        contact: formData.contact?.trim() || undefined,
-        address: formData.address?.trim() || undefined,
-        email: formData.email?.trim() || undefined,
-      }, userData.companyId);
+        mobile: formData.mobile.trim(),
+        gstin: formData.gstin.trim().toUpperCase(),
+        address: formData.address.trim(),
+        companyId: userData.companyId,
+      };
+      await createSupplierApi(supplierData);
       setSuccess('Supplier created successfully');
-      setShowCreateForm(false);
+      setShowAddForm(false);
       resetForm();
       await loadSuppliers();
     } catch (err: any) {
@@ -105,10 +116,10 @@ export default function SuppliersPage() {
     setEditingSupplier(supplier);
     setFormData({
       name: supplier.name,
+      mobile: supplier.mobile,
       gstin: supplier.gstin,
-      contact: supplier.contact || '',
-      address: supplier.address || '',
-      email: supplier.email || '',
+      address: supplier.address,
+      companyId: supplier.companyId,
     });
     setError('');
     setSuccess('');
@@ -121,28 +132,13 @@ export default function SuppliersPage() {
     setError('');
     setSuccess('');
 
-    if (!formData.name.trim()) {
-      setError('Supplier name is required');
-      return;
-    }
-    if (!formData.gstin.trim()) {
-      setError('GSTIN is required');
-      return;
-    }
-    if (!validateGSTIN(formData.gstin)) {
-      setError('Invalid GSTIN format. GSTIN must be 15 alphanumeric characters.');
-      return;
-    }
-
     try {
-      await updateSupplier(editingSupplier.id, {
-        ...formData,
-        gstin: formData.gstin.toUpperCase(),
-        name: formData.name.trim(),
-        contact: formData.contact?.trim() || undefined,
-        address: formData.address?.trim() || undefined,
-        email: formData.email?.trim() || undefined,
-      });
+      const supplierId = editingSupplier.id || editingSupplier.supplierId;
+      if (!supplierId) {
+        setError('Supplier ID not found');
+        return;
+      }
+      await updateSupplierApi(supplierId, formData);
       setSuccess('Supplier updated successfully');
       setEditingSupplier(null);
       resetForm();
@@ -156,7 +152,12 @@ export default function SuppliersPage() {
     if (!deletingSupplier) return;
 
     try {
-      await deleteSupplier(deletingSupplier.id);
+      const supplierId = deletingSupplier.id || deletingSupplier.supplierId;
+      if (!supplierId) {
+        setError('Supplier ID not found');
+        return;
+      }
+      await deleteSupplierApi(supplierId);
       setSuccess('Supplier deleted successfully');
       setDeletingSupplier(null);
       await loadSuppliers();
@@ -168,10 +169,10 @@ export default function SuppliersPage() {
   const resetForm = () => {
     setFormData({
       name: '',
+      mobile: '',
       gstin: '',
-      contact: '',
       address: '',
-      email: '',
+      companyId: '',
     });
   };
 
@@ -195,23 +196,25 @@ export default function SuppliersPage() {
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
-                  Supplier Management
+                  Suppliers Management
                 </h1>
                 <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                  Manage suppliers and their details
+                  Manage suppliers and their information
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setShowCreateForm(true);
-                  resetForm();
-                  setError('');
-                  setSuccess('');
-                }}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-              >
-                Add Supplier
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddForm(true);
+                    resetForm();
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  Add Supplier
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -226,8 +229,19 @@ export default function SuppliersPage() {
               </div>
             )}
 
-            {/* Create/Edit Form */}
-            {(showCreateForm || editingSupplier) && (
+            {/* Search */}
+            <div className="mb-6">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by Name, Mobile, GSTIN, or Address"
+                className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Add/Edit Form */}
+            {(showAddForm || editingSupplier) && (
               <div className="mb-8 rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
                 <h2 className="mb-4 text-xl font-semibold text-black dark:text-zinc-50">
                   {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
@@ -240,10 +254,25 @@ export default function SuppliersPage() {
                       </label>
                       <input
                         type="text"
-                        required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
                         className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Supplier Name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Mobile <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.mobile}
+                        onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                        required
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="9876543210"
                       />
                     </div>
 
@@ -253,48 +282,26 @@ export default function SuppliersPage() {
                       </label>
                       <input
                         type="text"
-                        required
                         value={formData.gstin}
                         onChange={(e) => setFormData({ ...formData, gstin: e.target.value.toUpperCase() })}
+                        required
                         maxLength={15}
-                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase"
-                        placeholder="15 alphanumeric characters"
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="29ABCDE1234F1Z6"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Contact
+                        Address <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        value={formData.contact}
-                        onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Address
-                      </label>
-                      <textarea
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        rows={3}
+                        required
                         className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="123 Main Street, Bangalore, Karnataka 560001"
                       />
                     </div>
                   </div>
@@ -309,7 +316,7 @@ export default function SuppliersPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setShowCreateForm(false);
+                        setShowAddForm(false);
                         setEditingSupplier(null);
                         resetForm();
                       }}
@@ -357,53 +364,49 @@ export default function SuppliersPage() {
                       Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      Mobile
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                       GSTIN
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      Email
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                       Address
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900">
                   {suppliers.map((supplier) => (
-                    <tr key={supplier.id}>
+                    <tr key={supplier.id || supplier.supplierId}>
                       <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-50">
                         {supplier.name}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
+                        {supplier.mobile}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
                         {supplier.gstin}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                        {supplier.contact || '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                        {supplier.email || '-'}
-                      </td>
                       <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
-                        {supplier.address || '-'}
+                        {supplier.address}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleEdit(supplier)}
-                          className="mr-3 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setDeletingSupplier(supplier)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          Delete
-                        </button>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(supplier)}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setDeletingSupplier(supplier)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
