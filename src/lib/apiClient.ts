@@ -19,9 +19,10 @@ const getApiBaseUrl = (): string => {
     (window.location.hostname.includes('vercel.app') || 
      window.location.hostname.includes('vercel.dev'));
   
-  // If on Vercel, use full backend URL (Vercel doesn't proxy external URLs)
+  // If on Vercel, use relative /api path (serverless function will proxy)
+  // The serverless function at /api/[...path] will handle proxying to backend
   if (import.meta.env.PROD && isVercel) {
-    return import.meta.env.VITE_API_BASE_URL || 'http://139.84.210.248:8080/api';
+    return '/api';  // Vercel serverless function proxies to backend
   }
   
   // In production with Nginx proxy (VPS deployment), use relative path
