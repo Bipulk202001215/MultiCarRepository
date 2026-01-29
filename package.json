@@ -21,6 +21,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vercel/node": "^5.5.28",
     "@vitejs/plugin-react": "^4.3.2",
     "eslint": "^9",
     "tailwindcss": "^4",
