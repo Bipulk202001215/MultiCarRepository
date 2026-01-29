@@ -14,7 +14,7 @@ In Vite, environment variables work differently than Next.js:
 1. **Create/Update `.env.local` file:**
    ```env
    # API Configuration
-   VITE_API_BASE_URL=http://localhost:8080
+   VITE_API_BASE_URL=http://139.84.210.248:8080/api
    
    # Firebase (temporary - will be removed)
    VITE_FIREBASE_API_KEY=your_key_here

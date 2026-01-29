@@ -5,7 +5,7 @@
 Your API base URL should be set in `.env.local` as:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=http://139.84.210.248:8080/api
 ```
 
 **Note**: Include `/api` in the base URL if your backend API routes are prefixed with `/api`.
@@ -13,15 +13,15 @@ VITE_API_BASE_URL=http://localhost:8080/api
 ## How It Works
 
 The code constructs the full URL as:
-- Base URL: `http://localhost:8080/api` (from `VITE_API_BASE_URL`)
+- Base URL: `http://139.84.210.248:8080/api` (from `VITE_API_BASE_URL`)
 - Endpoint: `/role-permissions/role/{roleId}`
-- Final URL: `http://localhost:8080/api/role-permissions/role/{roleId}` ✅
+- Final URL: `http://139.84.210.248:8080/api/role-permissions/role/{roleId}` ✅
 
 ## Example `.env.local` File
 
 ```env
 # API Configuration
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=http://139.84.210.248:8080/api
 
 # Firebase (temporary - will be removed)
 VITE_FIREBASE_API_KEY=your_key_here
@@ -41,7 +41,7 @@ VITE_FIREBASE_APP_ID=your_app_id
    ```
 
 2. **Verify in browser console**:
-   - After login, check the console for: `API Request: { url: 'http://localhost:8080/api/role-permissions/role/...' }`
+   - After login, check the console for: `API Request: { url: 'http://139.84.210.248:8080/api/role-permissions/role/...' }`
    - The URL should include `/api` in the path
 
 ## Troubleshooting
