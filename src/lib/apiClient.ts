@@ -14,7 +14,17 @@ declare global {
 }
 
 const getApiBaseUrl = (): string => {
-  // In production with Nginx proxy, use relative path
+  // Check if we're on Vercel (production deployment)
+  const isVercel = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('vercel.app') || 
+     window.location.hostname.includes('vercel.dev'));
+  
+  // If on Vercel, use full backend URL (Vercel doesn't proxy external URLs)
+  if (import.meta.env.PROD && isVercel) {
+    return import.meta.env.VITE_API_BASE_URL || 'http://139.84.210.248:8080/api';
+  }
+  
+  // In production with Nginx proxy (VPS deployment), use relative path
   if (import.meta.env.PROD) {
     return '/api';  // Nginx will proxy this to backend
   }
