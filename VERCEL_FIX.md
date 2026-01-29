@@ -1,6 +1,21 @@
-# Vercel API Proxy Fix
+# Vercel Deployment Fixes
 
 ## Issues Fixed
+
+### 1. SPA Routing (NOT_FOUND Error After Login)
+**Problem**: After successful login, navigating to `/` or other routes resulted in "NOT_FOUND" error on Vercel.
+
+**Root Cause**: The `vercel.json` rewrite rules weren't correctly configured to handle React Router (SPA) routing. Vercel was trying to find actual files for routes like `/`, `/jobs/board`, etc., instead of serving `index.html`.
+
+**Fix**: Updated `vercel.json` with proper rewrite rules:
+- Static files (with extensions) are served as-is
+- All other routes (including `/`) are rewritten to `/index.html` for client-side routing
+- API routes are automatically handled by Vercel's serverless functions (no rewrite needed)
+
+**Files Changed**:
+- `vercel.json` - Simplified and fixed rewrite rules
+
+## Issues Fixed (Previous)
 
 ### 1. Request Body Parsing
 **Problem**: Vercel's serverless functions may receive the request body in different formats (string, object, or Buffer), and the original code didn't handle all cases properly.
@@ -80,11 +95,28 @@ When testing on Vercel:
 - Check that requests are going to `/api/*` (not directly to backend)
 - Verify the serverless function is being called (check Vercel logs)
 
-#### Issue: 404 Not Found
+#### Issue: 404 Not Found on API Routes
+**Problem**: Getting 404 when calling `/api/auth/login` or other API endpoints.
+
+**Root Cause**: The catch-all rewrite rule in `vercel.json` was intercepting `/api/*` requests and rewriting them to `/index.html` before Vercel could route them to the serverless function.
+
+**Fix**: Updated `vercel.json` to exclude `/api/*` from the catch-all rewrite:
+```json
+{
+  "source": "/((?!api/).*)",
+  "destination": "/index.html"
+}
+```
+
+This ensures:
+- `/api/*` routes go to serverless functions (no rewrite)
+- All other routes go to `/index.html` for SPA routing
+
 **Check**:
 - The API route path is correct
-- The serverless function is deployed (check Functions tab)
+- The serverless function is deployed (check Functions tab in Vercel dashboard)
 - The `api/[...path].ts` file is in the repository
+- The `vercel.json` rewrite rules exclude `/api/*` paths
 
 #### Issue: Request Body is Empty
 **Check**:
