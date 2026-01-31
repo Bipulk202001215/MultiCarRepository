@@ -14,7 +14,29 @@ declare global {
 }
 
 const getApiBaseUrl = (): string => {
+  // Check if we're on Vercel (production deployment)
+  const isVercel = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('vercel.app') || 
+     window.location.hostname.includes('vercel.dev'));
   
+  // If on Vercel, use relative /api path (serverless function will proxy)
+  // The serverless function at /api/[...path] will handle proxying to backend
+  if (import.meta.env.PROD && isVercel) {
+    return '/api';  // Vercel serverless function proxies to backend
+  }
+  
+  // In production with Nginx proxy (VPS deployment), use relative path
+  if (import.meta.env.PROD) {
+    return '/api';  // Nginx will proxy this to backend
+  }
+  
+  // Development: Use Vite proxy (avoids CORS issues)
+  // Vite proxy will forward /api/* requests to the backend
+  if (import.meta.env.DEV) {
+    return '/api';  // Use relative path, Vite proxy handles it
+  }
+  
+  // Fallback: Use runtime config or env variable
   // Priority 1: Runtime config (from config.js injected at container startup)
   if (typeof window !== 'undefined') {
     // Check if config.js has loaded
@@ -27,7 +49,7 @@ const getApiBaseUrl = (): string => {
     }
   }
   // Priority 2: Build-time env var (from .env.local during development)
-  return import.meta.env.VITE_API_BASE_URL || '';
+  return import.meta.env.VITE_API_BASE_URL || '/api';
 };
 
 
@@ -223,17 +245,26 @@ export async function apiRequest<T>(
         statusText: response.statusText,
       };
       
-      // Enhanced error logging for 404
+      // Enhanced error logging
+      console.error('❌ API Request Failed:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        message: error.message,
+        data,
+      });
+      
       if (response.status === 404) {
-        console.error('❌ 404 Not Found:', {
-          url,
-          status: response.status,
-          message: error.message,
-        });
         console.error('💡 Check that:');
         console.error('   1. VITE_API_BASE_URL is set correctly in .env.local');
         console.error('   2. The API endpoint path is correct');
         console.error('   3. The API server is running and accessible');
+      } else if (response.status === 0 || response.status === undefined) {
+        // CORS or network error
+        console.error('💡 This might be a CORS issue. Check that:');
+        console.error('   1. Backend allows requests from your frontend origin');
+        console.error('   2. Backend has CORS headers configured');
+        console.error('   3. You are accessing the frontend from the correct URL');
       }
       
       throw error;
@@ -241,6 +272,19 @@ export async function apiRequest<T>(
 
     return data;
   } catch (error: any) {
+    // Enhanced error logging for network/CORS errors
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      console.error('❌ Network Error (Possible CORS issue):', {
+        url,
+        error: error.message,
+        suggestion: 'Check if backend allows CORS from your frontend origin',
+      });
+      throw {
+        message: 'Network error. This might be a CORS issue. Please check that the backend allows requests from your frontend origin.',
+        status: 0,
+      } as ApiError;
+    }
+    
     if (error.status) {
       // Already formatted API error
       throw error;

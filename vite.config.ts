@@ -14,6 +14,16 @@ export default defineConfig({
     port: 3001,
     strictPort: true,
     host: true,
+    // Proxy API requests to backend to avoid CORS issues
+    proxy: {
+      '/api': {
+        target: 'http://139.84.210.248:8080',
+        changeOrigin: true,
+        secure: false,
+        // Rewrite: remove /api prefix if backend doesn't use it
+        // rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
   preview: {
     port: 3001,
