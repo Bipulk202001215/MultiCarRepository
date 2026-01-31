@@ -26,16 +26,6 @@ const navItems: NavItem[] = [
     requiredPermission: PERMISSIONS.VIEW_DASHBOARD,
   },
   {
-    label: 'Job Card Management',
-    href: '/jobs/create',
-    requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
-  },
-  // {
-  //   label: 'Status Board',
-  //   href: '/jobs/board',
-  //   requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,
-  // },
-  {
     label: 'My Jobs',
     href: '/jobs/list',
     requiredPermission: PERMISSIONS.JOB_CARD_MANAGEMENT,

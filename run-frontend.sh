@@ -9,7 +9,7 @@ IMAGE_NAME="multi-car-repair-frontend:local"
 NETWORK_NAME="app-network"
 HOST_PORT="3001"
 CONTAINER_PORT="80"
-API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8080/api}"
+API_BASE_URL="${VITE_API_BASE_URL:-http://139.84.210.248:8080/api}"
 
 echo "🚀 Building and running frontend container..."
 echo ""

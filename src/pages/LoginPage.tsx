@@ -19,7 +19,17 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to authenticate');
+      console.error('Login error:', err);
+      const errorMessage = err.message || 'Failed to authenticate';
+      setError(errorMessage);
+      // Log additional debug info
+      if (import.meta.env.DEV) {
+        console.error('Login failed with error:', {
+          message: errorMessage,
+          status: err.status,
+          fullError: err,
+        });
+      }
     } finally {
       setLoading(false);
     }

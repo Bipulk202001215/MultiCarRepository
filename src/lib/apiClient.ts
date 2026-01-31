@@ -195,13 +195,14 @@ export async function apiRequest<T>(
   const baseUrl = currentApiUrl.endsWith('/') ? currentApiUrl.slice(0, -1) : currentApiUrl;
   const url = `${baseUrl}${normalizedEndpoint}`;
   
-  // Debug logging
+  // Debug logging - always log in dev mode
   if (import.meta.env.DEV) {
-    console.log('API Request:', {
+    console.log('🌐 API Request:', {
       method: options.method || 'GET',
       url,
       baseUrl,
       endpoint: normalizedEndpoint,
+      envVar: import.meta.env.VITE_API_BASE_URL || 'NOT SET',
     });
   }
   
@@ -288,12 +289,45 @@ export async function apiRequest<T>(
       // Already formatted API error
       throw error;
     }
-    // Network or other error
+    // Network or other error (CORS, network failure, etc.)
+    const errorMessage = error.message || 'Network error. Please check your connection.';
+    console.error('❌ Network Error:', {
+      url,
+      error: errorMessage,
+      type: error.name || 'Unknown',
+      baseUrl: currentApiUrl,
+    });
+    
+    // Provide more helpful error messages
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+      userFriendlyMessage = `CORS Error: The API server at ${currentApiUrl} is not allowing requests from this origin. Please check CORS configuration on the backend.`;
+    } else if (errorMessage.includes('NetworkError') || errorMessage.includes('ERR_')) {
+      userFriendlyMessage = `Cannot connect to API server at ${currentApiUrl}. Please verify the server is running and accessible.`;
+    }
+    
     throw {
-      message: error.message || 'Network error. Please check your connection.',
+      message: userFriendlyMessage,
       status: 0,
     } as ApiError;
   }
+}
+
+/**
+ * Debug function to check API configuration
+ * Call this in browser console: window.checkApiConfig()
+ */
+if (typeof window !== 'undefined') {
+  (window as any).checkApiConfig = () => {
+    const config = {
+      envVar: import.meta.env.VITE_API_BASE_URL || 'NOT SET',
+      runtimeConfig: window.__APP_CONFIG__?.VITE_API_BASE_URL || 'NOT SET',
+      resolvedUrl: getApiBaseUrl() || 'NOT SET',
+      configLoaded: !!(window as any).__APP_CONFIG_LOADED__,
+    };
+    console.log('🔍 API Configuration Check:', config);
+    return config;
+  };
 }
 
 /**
@@ -303,6 +337,10 @@ export async function loginApi(
   emailId: string,
   password: string
 ): Promise<LoginResponse> {
+  if (import.meta.env.DEV) {
+    console.log('🔐 Attempting login to:', getApiBaseUrl() + '/auth/login');
+  }
+  
   const response = await apiRequest<LoginResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ emailId, password }),
@@ -433,6 +471,34 @@ export async function getJobsByCompanyId(companyId: string): Promise<any[]> {
   } catch (error: any) {
     if (import.meta.env.DEV) {
       console.error('❌ Jobs API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get completed jobs by company ID
+ * API Endpoint: GET {{api_base}}/jobs/company/{companyId}/completed
+ */
+export async function getCompletedJobsByCompanyId(companyId: string): Promise<any[]> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching completed jobs by company ID:', companyId);
+    console.log('📤 API Endpoint: GET /jobs/company/' + companyId + '/completed');
+  }
+
+  try {
+    const response = await apiRequest<any[]>(`/jobs/company/${companyId}/completed`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Completed jobs API response received:', response);
+    }
+
+    return Array.isArray(response) ? response : [];
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Completed jobs API error:', error);
     }
     throw error;
   }

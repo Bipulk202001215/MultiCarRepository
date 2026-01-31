@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { getJobCard } from '@/lib/jobService';
+import { getCompanyConfig } from '@/lib/companyConfigService';
 import { JobCard } from '@/lib/types';
 
 export default function JobCardViewPage() {
@@ -14,12 +15,23 @@ export default function JobCardViewPage() {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<JobCard | null>(null);
   const [error, setError] = useState('');
+  const [companyConfig, setCompanyConfig] = useState<{ name?: string; gstin?: string } | null>(null);
 
   useEffect(() => {
     if (jobId) {
       loadJob();
     }
+    loadCompanyConfig();
   }, [jobId]);
+
+  const loadCompanyConfig = async () => {
+    try {
+      const config = await getCompanyConfig();
+      setCompanyConfig(config);
+    } catch (err) {
+      console.error('Failed to load company config:', err);
+    }
+  };
 
   const loadJob = async () => {
     try {
@@ -146,8 +158,24 @@ export default function JobCardViewPage() {
             {/* Job Card View */}
             <div className="job-card-view">
               <div className="job-card-container bg-white p-10 shadow-lg">
+                {/* Logo left, Company name & GSTIN right (same alignment) */}
+                <div className="flex justify-between items-start w-full mb-0">
+                  <div className="flex flex-col items-start">
+                    <img
+                      src="/autonation-logo.svg"
+                      alt="24X7 AutoNation Logo"
+                      className="h-32 w-auto object-contain"
+                      style={{ maxHeight: '128px' }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-end text-right text-black">
+                    <div className="text-lg font-semibold">{companyConfig?.name || '24X7 AutoNation'}</div>
+                    <div className="text-sm mt-1">GSTIN: {companyConfig?.gstin || '02LSNPS6493R1ZC'}</div>
+                  </div>
+                </div>
+
                 {/* Title */}
-                <h1 className="text-center text-3xl font-bold uppercase underline mb-8 text-black">
+                <h1 className="text-center text-3xl font-bold uppercase underline mb-8 text-black -mt-4">
                   JOB CARD
                 </h1>
 

@@ -2,7 +2,7 @@ import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { createJobApi, updateJobApi, getJobsByCompanyId } from '@/lib/apiClient';
+import { createJobApi, updateJobApi, getJobsByCompanyId, getCompletedJobsByCompanyId } from '@/lib/apiClient';
 import { ServiceType, JobDescription, JobStatus } from '@/lib/types';
 
 const SERVICE_TYPES: ServiceType[] = [
@@ -44,6 +44,8 @@ export default function CreateJobPage() {
   const [jobDescriptions, setJobDescriptions] = useState<JobDescription[]>(
     Array(4).fill(null).map(() => ({ ...INITIAL_JOB_DESCRIPTION }))
   );
+  // Loaded job status (to hide Update button when completed)
+  const [loadedJobStatus, setLoadedJobStatus] = useState<string>('');
 
   // Load job data if in view mode
   useEffect(() => {
@@ -61,27 +63,32 @@ export default function CreateJobPage() {
         return;
       }
 
-      const jobs = await getJobsByCompanyId(companyId);
-      const job = jobs.find((j: any) => j.jobCardId === id);
+      let jobs = await getJobsByCompanyId(companyId);
+      let job = jobs.find((j: any) => j.jobCardId === id);
+      // If not found (e.g. completed jobs), try completed jobs API so view prefills as per table entries
+      if (!job) {
+        const completedJobs = await getCompletedJobsByCompanyId(companyId);
+        job = completedJobs.find((j: any) => j.jobCardId === id);
+      }
 
       if (job) {
-        // Populate all form fields from API response
+        setLoadedJobStatus(job.status || '');
+        // Populate all form fields from API response (same entries as in table: vehicle, mobile, descriptions)
         setVehicleNo(job.vehicleNumber || '');
         setMobile(job.mobileNumber || '');
         setKmReading(String(job.kmReading || ''));
-        setVehicleModel(job.vehicleModel || '');
+        setVehicleModel(job.vehicleModel || job.carModel || job.carMake || '');
         
-        // Load job descriptions - only rows with data
+        // Load job descriptions - all entries prefilled as per table/view
         const apiJobDescriptions = job.jobDetailId?.jobDescription || [];
-        const transformedDescriptions: JobDescription[] = apiJobDescriptions
-          .filter((desc: any) => desc.description && desc.description.trim()) // Only include rows with description
-          .map((desc: any) => ({
-            serviceType: desc.serviceType ? (desc.serviceType.charAt(0) + desc.serviceType.slice(1).toLowerCase()) as ServiceType : 'Periodic',
-            description: desc.description || '',
-            assignedMechanicType: desc.assignedMechanicType || '',
-            estimatedTime: desc.estimatedTime || '',
-          }));
-
+        const transformedDescriptions: JobDescription[] = apiJobDescriptions.length > 0
+          ? apiJobDescriptions.map((desc: any) => ({
+              serviceType: desc.serviceType ? (desc.serviceType.charAt(0) + desc.serviceType.slice(1).toLowerCase()) as ServiceType : 'Periodic',
+              description: desc.description || '',
+              assignedMechanicType: desc.assignedMechanicType || '',
+              estimatedTime: desc.estimatedTime || '',
+            }))
+          : [{ ...INITIAL_JOB_DESCRIPTION }];
         setJobDescriptions(transformedDescriptions);
       } else {
         setError('Job not found');
@@ -439,14 +446,16 @@ export default function CreateJobPage() {
             {/* Action Buttons */}
                 <div className="flex gap-4 border-t border-zinc-200 dark:border-zinc-700 pt-6">
                   {isViewMode ? (
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={loading}
-                      className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      {loading ? 'Updating...' : 'Update'}
-                    </button>
+                    loadedJobStatus !== 'COMPLETED' && (
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {loading ? 'Updating...' : 'Update'}
+                      </button>
+                    )
                   ) : (
                     <>
                       <button

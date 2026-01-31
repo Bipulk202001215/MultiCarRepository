@@ -62,7 +62,7 @@ fi
 
 # Inject runtime configuration (API URL from environment variable)
 log_debug "Injecting runtime configuration"
-API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8080}"
+API_BASE_URL="${VITE_API_BASE_URL:-http://139.84.210.248:8080/api}"
 log_debug "API_BASE_URL: $API_BASE_URL"
 
 # Create config.js file with runtime configuration

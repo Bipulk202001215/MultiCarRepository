@@ -23,7 +23,7 @@ Look in browser console for:
 ```
 API Request: {
   method: 'GET',
-  url: 'http://localhost:8080/role-permissions/role/{roleId}',
+  url: 'http://139.84.210.248:8080/api/role-permissions/role/{roleId}',
   ...
 }
 ```
@@ -37,7 +37,7 @@ API Request: {
 
 **CORS Error**:
 ```
-Access to fetch at 'http://localhost:8080/...' has been blocked by CORS policy
+Access to fetch at 'http://139.84.210.248:8080/api/...' has been blocked by CORS policy
 ```
 → Fix CORS in your backend (see CORS_SOLUTION.md)
 
@@ -54,10 +54,10 @@ Access to fetch at 'http://localhost:8080/...' has been blocked by CORS policy
 
 **Network Error**:
 ```
-POST http://localhost:8080/role-permissions/role/... net::ERR_FAILED
+POST http://139.84.210.248:8080/api/role-permissions/role/... net::ERR_FAILED
 ```
 → Backend server is not running or not accessible
-→ Check if API server is running on port 8080
+→ Check if API server is running on 139.84.210.248:8080
 
 ### 4. Check Response Format
 
@@ -81,7 +81,7 @@ If your API returns a different format, update the `RolePermissionResponse` inte
 
 Test the API directly:
 ```bash
-curl -X GET "http://localhost:8080/role-permissions/role/YOUR_ROLE_ID" \
+curl -X GET "http://139.84.210.248:8080/api/role-permissions/role/YOUR_ROLE_ID" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

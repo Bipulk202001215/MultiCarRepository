@@ -147,23 +147,21 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
       <table className="mb-4">
         <thead>
           <tr>
-            <th style={{ width: '5%' }}>S. No.</th>
-            <th style={{ width: '45%' }}>DESCRIPTION OF GOODS</th>
-            <th style={{ width: '10%' }}>Qty</th>
-            <th style={{ width: '15%' }}>Rate</th>
-            <th style={{ width: '25%' }}>Amount</th>
+            <th style={{ width: '5%', fontSize: '14px', fontWeight: 'bold' }}>S. No.</th>
+            <th style={{ width: '28%', fontSize: '14px', fontWeight: 'bold' }}>Part Description</th>
+            <th style={{ width: '8%', fontSize: '14px', fontWeight: 'bold' }}>Qty (Unit)</th>
+            <th style={{ width: '15%', fontSize: '14px', fontWeight: 'bold' }}>HSN Code</th>
+            <th style={{ width: '22%', fontSize: '14px', fontWeight: 'bold' }}>MRP</th>
+            <th style={{ width: '22%', fontSize: '14px', fontWeight: 'bold' }}>Total Price</th>
           </tr>
         </thead>
         <tbody>
           {invoice.items.map((item, index) => (
             <tr key={index}>
               <td>{index + 1}</td>
-              <td>
-                {item.name}
-                <br />
-                <span className="text-xs">HSN: {item.hsnCode}</span>
-              </td>
+              <td>{item.name}</td>
               <td>{item.quantity}</td>
+              <td>{item.hsnCode ?? '—'}</td>
               <td>₹{item.unitPrice.toFixed(2)}</td>
               <td>
                 <div className="flex justify-between">
@@ -177,6 +175,7 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
           {Array.from({ length: Math.max(0, 14 - invoice.items.length) }).map((_, i) => (
             <tr key={`empty-${i}`}>
               <td>{invoice.items.length + i + 1}</td>
+              <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>&nbsp;</td>

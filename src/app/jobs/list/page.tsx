@@ -97,12 +97,21 @@ export default function JobListPage() {
                   All job cards created by you
                 </p>
               </div>
-              <Link
-                href="/jobs/create"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-              >
-                Create New Job
-              </Link>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFilterStatus('COMPLETED')}
+                  className="rounded-md border-2 border-blue-600 dark:border-blue-500 bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  Completed Jobs
+                </button>
+                <Link
+                  href="/jobs/create"
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  Create New Job
+                </Link>
+              </div>
             </div>
 
             {error && (

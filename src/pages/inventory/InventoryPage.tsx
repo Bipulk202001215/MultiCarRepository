@@ -52,22 +52,56 @@ export default function InventoryPage() {
   const [filteredPartData, setFilteredPartData] = useState<PartDataItem[]>([]);
   const [showPartDropdown, setShowPartDropdown] = useState(false);
   const [selectedCompanyName, setSelectedCompanyName] = useState('');
+  const [partSelectedFromDropdown, setPartSelectedFromDropdown] = useState(false);
   const partDropdownRef = useRef<HTMLDivElement>(null);
   
-  // Handle part code input change and filter data
+  // Handle part code input change and filter data (same as main search: 1st/2nd value + prefix*last3)
   const handlePartCodeChange = (value: string) => {
     setFormData({ ...formData, partCode: value });
-    
+    setPartSelectedFromDropdown(false);
+
     if (value.trim() === '') {
       setFilteredPartData([]);
       setShowPartDropdown(false);
       return;
     }
     
-    // Filter part data that starts with the entered value
-    const filtered = (partData as PartDataItem[]).filter((item) =>
-      item.PART_No.startsWith(value)
-    );
+    const term = value.trim();
+    // Guard: partData may be undefined if JSON failed to load or is not an array
+    const raw = partData as PartDataItem[] | undefined;
+    const list = Array.isArray(raw) ? raw : [];
+
+    // Pattern search: "1st value * last 3 value" (e.g. "26*341")
+    const starIndex = term.indexOf('*');
+    let filtered: PartDataItem[];
+    if (starIndex !== -1 && term.indexOf('*', starIndex + 1) === -1) {
+      const prefix = term.slice(0, starIndex).trim();
+      const suffix = term.slice(starIndex + 1).trim();
+      if (prefix !== '' && suffix !== '') {
+        const pl = prefix.toLowerCase();
+        const sl = suffix.toLowerCase();
+        filtered = list.filter(
+          (item) => {
+            const pn = String(item.PART_No ?? '').toLowerCase();
+            return pn.startsWith(pl) && pn.endsWith(sl) && pn.length >= prefix.length + suffix.length;
+          }
+        );
+      } else {
+        filtered = list.filter(
+          (item) =>
+            String(item.PART_No ?? '').toLowerCase().includes(term.toLowerCase()) ||
+            String(item.PART_DESC ?? '').toLowerCase().includes(term.toLowerCase())
+        );
+      }
+    } else {
+      // Search by 1st value (PART_No) or 2nd value (PART_DESC) - partial match
+      const termLower = term.toLowerCase();
+      filtered = list.filter(
+        (item) =>
+          String(item.PART_No ?? '').toLowerCase().includes(termLower) ||
+          String(item.PART_DESC ?? '').toLowerCase().includes(termLower)
+      );
+    }
     
     setFilteredPartData(filtered.slice(0, 50)); // Limit to 50 results for performance
     setShowPartDropdown(filtered.length > 0);
@@ -81,6 +115,7 @@ export default function InventoryPage() {
       name: part.PART_DESC,
     });
     setSelectedCompanyName(part.Company);
+    setPartSelectedFromDropdown(true);
     setShowPartDropdown(false);
     setFilteredPartData([]);
   };
@@ -369,6 +404,7 @@ export default function InventoryPage() {
       barcode: '',
     });
     setSelectedCompanyName('');
+    setPartSelectedFromDropdown(false);
     setFilteredPartData([]);
     setShowPartDropdown(false);
   };
@@ -467,14 +503,14 @@ export default function InventoryPage() {
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="relative" ref={partDropdownRef}>
                       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Part Code {!editingPart && <span className="text-zinc-500">(Auto-generated if empty)</span>}
+                        Part Code {!editingPart && <span className="text-zinc-500"></span>}
                       </label>
                       <input
                         type="text"
                         value={formData.partCode}
                         onChange={(e) => handlePartCodeChange(e.target.value)}
                         className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Start typing part number (e.g., 9)"
+                        placeholder="Enter Part code"
                         disabled={!!editingPart}
                         onFocus={() => {
                           if (formData.partCode && formData.partCode.trim() !== '' && filteredPartData.length > 0) {
@@ -507,7 +543,8 @@ export default function InventoryPage() {
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        disabled={partSelectedFromDropdown && !editingPart}
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed"
                         placeholder="Enter part description"
                       />
                     </div>
@@ -520,7 +557,8 @@ export default function InventoryPage() {
                         type="text"
                         value={selectedCompanyName || userCompany?.name || userData?.companyId || ''}
                         onChange={(e) => setSelectedCompanyName(e.target.value)}
-                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        disabled={partSelectedFromDropdown && !editingPart}
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed"
                         placeholder="Company Name"
                       />
                     </div>
