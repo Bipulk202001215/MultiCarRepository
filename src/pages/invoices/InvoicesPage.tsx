@@ -5,19 +5,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createInvoiceApi, getInvoicesApi, getInvoiceByIdApi, getFullInvoiceApi, getPendingJobs } from '@/lib/apiClient';
 import { getCompanyConfig } from '@/lib/companyConfigService';
 import { getJobCard } from '@/lib/jobService';
-import { searchPartByCode } from '@/lib/inventoryService';
+import { getAllParts, searchPartByCode } from '@/lib/inventoryService';
+import { Part } from '@/lib/types';
 import partData from '@/partData.json';
 
 interface PartDataItem {
   PART_No: string;
   PART_DESC: string;
   Company: string;
+  'HSN Code'?: number;
 }
 
 interface InvoiceItem {
   partCode: string;
   units: number;
-  discount?: number;
 }
 
 interface SubmittedInvoice {
@@ -43,6 +44,7 @@ export default function InvoicesPage() {
   const [showPdfView, setShowPdfView] = useState(false);
   const [companyConfig, setCompanyConfig] = useState<any>(null);
   const [jobDetails, setJobDetails] = useState<any>(null);
+  const [pdfVehicleNo, setPdfVehicleNo] = useState<string>('');
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState<any>(null);
@@ -60,9 +62,10 @@ export default function InvoicesPage() {
 
   // Invoice items
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
-  
-  // Autocomplete state for invoice items
-  const [filteredPartData, setFilteredPartData] = useState<{ [key: string]: PartDataItem[] }>({});
+
+  // Inventory parts (for Add Item dropdown – selection only, no manual part code)
+  const [inventoryParts, setInventoryParts] = useState<Part[]>([]);
+  const [partFilterByRow, setPartFilterByRow] = useState<{ [key: string]: string }>({});
   const [showPartDropdown, setShowPartDropdown] = useState<{ [key: string]: boolean }>({});
   const partDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
@@ -80,26 +83,17 @@ export default function InvoicesPage() {
     setInvoiceItems([...invoiceItems, { partCode: '', units: 1 }]);
   };
 
-  const removeItem = (partCode: string) => {
-    setInvoiceItems(invoiceItems.filter(item => item.partCode !== partCode));
+  const removeItem = (index: number) => {
+    setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
   };
 
-  const updateUnits = (partCode: string, units: number) => {
+  const updateUnits = (index: number, units: number) => {
     if (units <= 0) {
-      removeItem(partCode);
+      removeItem(index);
       return;
     }
-    setInvoiceItems(invoiceItems.map(item =>
-      item.partCode === partCode ? { ...item, units } : item
-    ));
-  };
-
-  const updateDiscount = (partCode: string, value: string) => {
-    // Parse the value - if empty string, set to undefined, otherwise parse as float
-    const discount = value === '' ? undefined : (parseFloat(value) || 0);
-    const finalDiscount = discount !== undefined && discount > 0 ? discount : undefined;
-    setInvoiceItems(invoiceItems.map(item =>
-      item.partCode === partCode ? { ...item, discount: finalDiscount } : item
+    setInvoiceItems(invoiceItems.map((item, i) =>
+      i === index ? { ...item, units } : item
     ));
   };
 
@@ -114,10 +108,25 @@ export default function InvoicesPage() {
     // If no exact match, try case-insensitive match
     if (!matchedPart) {
       matchedPart = (partData as PartDataItem[]).find(
-        (part) => part.PART_No && part.PART_No.trim().toUpperCase() === trimmedPartCode.toUpperCase()
+        (part) => part.PART_No && String(part.PART_No).trim().toUpperCase() === trimmedPartCode.toUpperCase()
       );
     }
     return matchedPart?.PART_DESC || '';
+  };
+
+  // Function to get HSN Code from partData.json by matching part code (same lookup as description)
+  const getPartHsnCode = (partCode: string): string => {
+    if (!partCode || partCode.trim() === '') return '';
+    const trimmedPartCode = partCode.trim();
+    const list = Array.isArray(partData) ? (partData as PartDataItem[]) : [];
+    let matchedPart = list.find((part) => String(part.PART_No ?? '').trim() === trimmedPartCode);
+    if (!matchedPart) {
+      matchedPart = list.find(
+        (part) => String(part.PART_No ?? '').trim().toUpperCase() === trimmedPartCode.toUpperCase()
+      );
+    }
+    const hsn = matchedPart?.['HSN Code'];
+    return hsn != null ? String(hsn) : '';
   };
 
   const updatePartCode = (oldPartCode: string, newPartCode: string) => {
@@ -126,41 +135,32 @@ export default function InvoicesPage() {
     ));
   };
   
-  // Handle part code input change and filter data for invoice items
-  const handleInvoicePartCodeChange = (originalPartCode: string, value: string, index: number) => {
-    // Update the part code in the items array
-    setInvoiceItems(invoiceItems.map((item, idx) =>
-      idx === index ? { ...item, partCode: value } : item
-    ));
-    
-    // Use index as stable key for dropdown state
-    const stableKey = `item-${index}`;
-    
-    if (value.trim() === '') {
-      setFilteredPartData({ ...filteredPartData, [stableKey]: [] });
-      setShowPartDropdown({ ...showPartDropdown, [stableKey]: false });
-      return;
-    }
-    
-    // Filter part data that starts with the entered value
-    const filtered = (partData as PartDataItem[]).filter((item) =>
-      item.PART_No.startsWith(value)
-    );
-    
-    setFilteredPartData({ ...filteredPartData, [stableKey]: filtered.slice(0, 100) });
-    setShowPartDropdown({ ...showPartDropdown, [stableKey]: filtered.length > 0 });
+  // Filter term per row – used only to filter dropdown; part code is set only on select
+  const getFilteredInventoryPartsForKey = (dropdownKey: string): Part[] => {
+    const term = (partFilterByRow[dropdownKey] ?? '').trim().toLowerCase();
+    if (!term) return inventoryParts.slice(0, 100);
+    return inventoryParts.filter(
+      (p) =>
+        (p.partCode && p.partCode.toLowerCase().includes(term)) ||
+        (p.name && p.name.toLowerCase().includes(term))
+    ).slice(0, 100);
   };
-  
-  // Handle part selection from dropdown for invoice items
-  const handleInvoicePartSelect = (index: number, part: PartDataItem) => {
-    // Update the part code using index
-    setInvoiceItems(invoiceItems.map((item, idx) =>
-      idx === index ? { ...item, partCode: part.PART_No } : item
-    ));
-    
+
+  // Handle filter input for invoice item part dropdown (does not set part code; part code is set only on select)
+  const handleInvoicePartFilterChange = (value: string, index: number) => {
     const stableKey = `item-${index}`;
-    setShowPartDropdown({ ...showPartDropdown, [stableKey]: false });
-    setFilteredPartData({ ...filteredPartData, [stableKey]: [] });
+    setPartFilterByRow((prev) => ({ ...prev, [stableKey]: value }));
+    setShowPartDropdown((prev) => ({ ...prev, [stableKey]: true }));
+  };
+
+  // Handle part selection from dropdown – only way to set part code for invoice item
+  const handleInvoicePartSelect = (index: number, part: Part) => {
+    setInvoiceItems(invoiceItems.map((item, idx) =>
+      idx === index ? { ...item, partCode: part.partCode } : item
+    ));
+    const stableKey = `item-${index}`;
+    setPartFilterByRow((prev) => ({ ...prev, [stableKey]: '' }));
+    setShowPartDropdown((prev) => ({ ...prev, [stableKey]: false }));
   };
   
   // Load pending jobs on component mount
@@ -175,6 +175,20 @@ export default function InvoicesPage() {
     };
     loadPendingJobs();
   }, []);
+
+  // Load inventory parts for Add Item dropdown (selection only, no manual part code)
+  useEffect(() => {
+    const loadInventoryParts = async () => {
+      if (!userData?.companyId) return;
+      try {
+        const parts = await getAllParts(userData.companyId);
+        setInventoryParts(parts);
+      } catch (err: any) {
+        console.error('Failed to load inventory parts:', err);
+      }
+    };
+    loadInventoryParts();
+  }, [userData?.companyId]);
 
   // Handle job ID input change - filter by mobile number
   const handleJobIdChange = (value: string) => {
@@ -252,6 +266,20 @@ export default function InvoicesPage() {
       return;
     }
 
+    // Validate that every part code exists in inventory
+    const inventoryPartCodes = new Set(inventoryParts.map((p) => (p.partCode || '').trim().toLowerCase()));
+    const invalidItem = invoiceItems.find(
+      (item) => !item.partCode?.trim() || !inventoryPartCodes.has(item.partCode.trim().toLowerCase())
+    );
+    if (invalidItem) {
+      setError(
+        invalidItem.partCode?.trim()
+          ? `Part code "${invalidItem.partCode.trim()}" is not present in inventory. Please select parts from the dropdown.`
+          : 'One or more items have no part code. Please select a part code from the dropdown for each item.'
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -261,17 +289,10 @@ export default function InvoicesPage() {
         companyId: userData.companyId.trim(),
         paymentStatus: formData.paymentStatus,
         paymentMode: formData.paymentMode,
-        items: invoiceItems.map(item => {
-          const itemData: any = {
-            partCode: item.partCode.trim(),
-            units: item.units,
-          };
-          // Only include discount if it's greater than 0
-          if (item.discount && item.discount > 0) {
-            itemData.discount = item.discount;
-          }
-          return itemData;
-        }),
+        items: invoiceItems.map(item => ({
+          partCode: item.partCode.trim(),
+          units: item.units,
+        })),
       };
       
       // Add additionalDetails if customerName or customerGstin is provided
@@ -482,21 +503,21 @@ export default function InvoicesPage() {
         setPdfItems(itemsWithDetails);
       } else {
         // Fallback to existing items if API doesn't return formatted items
-        setPdfItems(editingInvoice.items.map(item => {
+        setPdfItems(editingInvoice.items.map((item: any) => {
           const partCode = item.partCode || '';
           const partDescription = getPartDescription(partCode) || partCode;
           return {
             ...item,
             partCode: partCode,
             partDescription: partDescription,
-            unitsPrice: 0,
-            totalPrice: 0,
-            discountPercentage: 0,
-            discountedPrice: 0,
-            name: partCode,
-            hsnCode: '',
-            unitPrice: 0,
-            gstSlab: 9,
+            unitsPrice: item.unitsPrice ?? item.unitPrice ?? 0,
+            totalPrice: item.totalPrice ?? 0,
+            discountPercentage: item.discountPercentage ?? 0,
+            discountedPrice: item.discountedPrice ?? item.totalPrice ?? 0,
+            name: item.name ?? partCode,
+            hsnCode: item.hsnCode ?? item.hsn ?? item.hsncode ?? '',
+            unitPrice: item.unitPrice ?? 0,
+            gstSlab: item.gstSlab ?? 9,
           };
         }));
       }
@@ -633,18 +654,24 @@ export default function InvoicesPage() {
                           const fullInvoice = await getFullInvoiceApi(invoiceId);
                           console.log('✅ Full invoice API response received:', fullInvoice);
                           
-                          // Extract job/customer details from full invoice response
-                          if (fullInvoice.jobDetails || fullInvoice.job) {
-                            setJobDetails(fullInvoice.jobDetails || fullInvoice.job);
-                          }
-                          
-                          // Extract additionalDetails from full invoice response
-                          if (fullInvoice.additionalDetails) {
-                            setAdditionalDetails(fullInvoice.additionalDetails);
-                          }
-                          
-                          // Extract items with full details from API response
-                          if (fullInvoice.items && Array.isArray(fullInvoice.items)) {
+      // Extract job/customer details from full invoice response
+      if (fullInvoice.jobDetails || fullInvoice.job) {
+        setJobDetails(fullInvoice.jobDetails || fullInvoice.job);
+      }
+      // Extract vehicle number from full invoice (top-level or from job)
+      const job = fullInvoice.jobDetails || fullInvoice.job || {};
+      const vehicleNo =
+        fullInvoice.vehicleNo ?? fullInvoice.vehicleNumber ?? fullInvoice.vehicle_no
+        ?? job.vehicleNumber ?? job.vehicleNo ?? job.vehicle_no ?? job.vehicle_number ?? '';
+      setPdfVehicleNo(vehicleNo != null && vehicleNo !== '' ? String(vehicleNo) : '');
+      
+      // Extract additionalDetails from full invoice response
+      if (fullInvoice.additionalDetails) {
+        setAdditionalDetails(fullInvoice.additionalDetails);
+      }
+      
+      // Extract items with full details from API response
+      if (fullInvoice.items && Array.isArray(fullInvoice.items)) {
                             const itemsWithDetails = fullInvoice.items.map((item: any) => {
                               const partCode = item.partCode || item.partcode || '';
                               // Prioritize partData.json lookup over API's partDescription
@@ -667,12 +694,12 @@ export default function InvoicesPage() {
                             setPdfItems(itemsWithDetails);
                           } else {
                             // Fallback to existing items
-                            setPdfItems(editingInvoice.items.map(item => ({
+                            setPdfItems(editingInvoice.items.map((item: any) => ({
                               ...item,
-                              name: item.partCode,
-                              hsnCode: '',
-                              unitPrice: 0,
-                              gstSlab: 9,
+                              name: item.name ?? item.partCode,
+                              hsnCode: item.hsnCode ?? item.hsn ?? item.hsncode ?? '',
+                              unitPrice: item.unitPrice ?? 0,
+                              gstSlab: item.gstSlab ?? 9,
                             })));
                           }
                           
@@ -967,9 +994,6 @@ export default function InvoicesPage() {
                           Units
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                          Discount
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                           Action
                         </th>
                       </tr>
@@ -988,30 +1012,35 @@ export default function InvoicesPage() {
                               }}>
                                 <input
                                   type="text"
-                                  value={item.partCode}
-                                  onChange={(e) => handleInvoicePartCodeChange(item.partCode, e.target.value, index)}
-                                  onFocus={() => {
-                                    if (item.partCode && item.partCode.trim() !== '' && filteredPartData[dropdownKey]?.length > 0) {
-                                      setShowPartDropdown({ ...showPartDropdown, [dropdownKey]: true });
-                                    }
+                                  value={item.partCode || (partFilterByRow[dropdownKey] ?? '')}
+                                  onChange={(e) => {
+                                    if (!item.partCode) handleInvoicePartFilterChange(e.target.value, index);
                                   }}
-                                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 py-1 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                  placeholder="Type part code (e.g., 9)"
+                                  onFocus={() => setShowPartDropdown((prev) => ({ ...prev, [dropdownKey]: true }))}
+                                  readOnly={!!item.partCode}
+                                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 py-1 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 disabled:cursor-pointer"
+                                  placeholder="Select part from inventory..."
                                   required
                                 />
-                                {showPartDropdown[dropdownKey] && filteredPartData[dropdownKey]?.length > 0 && (
-                                  <div className="absolute z-50 mt-1 w-full overflow-y-auto rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 shadow-lg" style={{ maxHeight: '240px', minHeight: '180px' }}>
-                                    {filteredPartData[dropdownKey].map((part, idx) => (
-                                      <div
-                                        key={idx}
-                                        onClick={() => handleInvoicePartSelect(index, part)}
-                                        className="cursor-pointer px-3 py-2 hover:bg-blue-50 dark:hover:bg-zinc-700 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 transition-colors"
-                                      >
-                                        <div className="font-medium text-black dark:text-zinc-50 text-sm">{part.PART_No}</div>
-                                        <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">{part.PART_DESC}</div>
-                                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-0.5">Company: {part.Company}</div>
+                                {showPartDropdown[dropdownKey] && (
+                                  <div className="absolute z-50 mt-1 w-full overflow-y-auto rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 shadow-lg" style={{ maxHeight: '240px', minHeight: '120px' }}>
+                                    {getFilteredInventoryPartsForKey(dropdownKey).length === 0 ? (
+                                      <div className="px-3 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                        {inventoryParts.length === 0 ? 'No parts in inventory.' : 'No matching parts. Type to filter.'}
                                       </div>
-                                    ))}
+                                    ) : (
+                                      getFilteredInventoryPartsForKey(dropdownKey).map((part) => (
+                                        <div
+                                          key={part.id}
+                                          onClick={() => handleInvoicePartSelect(index, part)}
+                                          className="cursor-pointer px-3 py-2 hover:bg-blue-50 dark:hover:bg-zinc-700 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0 transition-colors"
+                                        >
+                                          <div className="font-medium text-black dark:text-zinc-50 text-sm">{part.partCode}</div>
+                                          <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">{part.name || '—'}</div>
+                                          <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-0.5">₹{part.unitPrice ?? 0}</div>
+                                        </div>
+                                      ))
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -1021,26 +1050,15 @@ export default function InvoicesPage() {
                                 type="number"
                                 min="1"
                                 value={item.units}
-                                onChange={(e) => updateUnits(item.partCode, parseInt(e.target.value) || 1)}
+                                onChange={(e) => updateUnits(index, parseInt(e.target.value) || 1)}
                                 className="w-20 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 py-1 text-black dark:text-zinc-50"
                                 required
-                              />
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={item.discount && item.discount > 0 ? item.discount : ''}
-                                onChange={(e) => updateDiscount(item.partCode, e.target.value)}
-                                className="w-24 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 py-1 text-black dark:text-zinc-50"
-                                placeholder="0.00"
                               />
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-sm">
                               <button
                                 type="button"
-                                onClick={() => removeItem(item.partCode)}
+                                onClick={() => removeItem(index)}
                                 className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                               >
                                 Remove
@@ -1218,15 +1236,22 @@ export default function InvoicesPage() {
                             <span className="font-semibold">Date:</span> {editingInvoice.submittedAt.toLocaleDateString('en-IN')}
                           </div>
                         </div>
-                        <div className="flex justify-between mb-4">
-                          <div>
+                        <div className="flex justify-between items-start mb-4 gap-4">
+                          <div style={{ flex: '1' }}>
                             <span className="font-semibold">Name.</span> {additionalDetails?.name || jobDetails?.customerName || 'N/A'}
                           </div>
-                          {additionalDetails?.customerGstin && (
-                            <div>
-                              <span className="font-semibold">Customer GSTIN:</span> {additionalDetails.customerGstin}
-                            </div>
-                          )}
+                          <div className="text-center" style={{ flex: '1' }}>
+                            <span className="font-semibold">Vehicle Number:</span> {pdfVehicleNo || jobDetails?.vehicleNumber || jobDetails?.vehicleNo || jobDetails?.vehicle_no || jobDetails?.vehicle_number || '—'}
+                          </div>
+                          <div className="text-right" style={{ flex: '1' }}>
+                            {additionalDetails?.customerGstin ? (
+                              <>
+                                <span className="font-semibold">Customer GSTIN:</span> {additionalDetails.customerGstin}
+                              </>
+                            ) : (
+                              <span>&nbsp;</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -1234,18 +1259,22 @@ export default function InvoicesPage() {
                       <table className="mb-4" style={{ fontSize: '10px' }}>
                         <thead>
                           <tr>
-                            <th style={{ width: '8%' }}>S. No.</th>
-                            <th style={{ width: '15%' }}>Part Code</th>
-                            <th style={{ width: '25%' }}>Part Desc</th>
-                            <th style={{ width: '12%' }}>Quantity (Unit)</th>
-                            <th style={{ width: '15%' }}>Rate (Unit Price)</th>
-                            <th style={{ width: '25%' }}>Total Price (Discounted Price)</th>
+                            <th style={{ width: '5%', fontSize: '14px', fontWeight: 'bold' }}>S. No.</th>
+                            <th style={{ width: '10%', fontSize: '14px', fontWeight: 'bold' }}>Part No</th>
+                            <th style={{ width: '28%', fontSize: '14px', fontWeight: 'bold' }}>Part Description</th>
+                            <th style={{ width: '15%', fontSize: '14px', fontWeight: 'bold' }}>HSN Code</th>
+                            <th style={{ width: '8%', fontSize: '14px', fontWeight: 'bold' }}>Qty (Unit)</th>
+                            <th style={{ width: '22%', fontSize: '14px', fontWeight: 'bold' }}>MRP</th>
+                            <th style={{ width: '12%', fontSize: '14px', fontWeight: 'bold' }}>Total Price</th>
                           </tr>
                         </thead>
                         <tbody>
                           {pdfItems.map((item, index) => {
                             const partCode = item.partCode || '';
                             const units = item.units || 0;
+                            // Pick HSN Code from partData.json same as Part Desc
+                            const hsnCodeFromJson = getPartHsnCode(partCode);
+                            const hsnCode = hsnCodeFromJson || (item.hsnCode ?? item.hsn ?? item.hsncode ?? '—');
                             // Always get fresh description from partData.json to ensure accuracy
                             const partDescriptionFromJson = getPartDescription(partCode);
                             const partDescription = partDescriptionFromJson || item.partDescription || item.name || '';
@@ -1259,6 +1288,7 @@ export default function InvoicesPage() {
                                 <td>{index + 1}</td>
                                 <td>{partCode}</td>
                                 <td>{partDescription}</td>
+                                <td>{hsnCode}</td>
                                 <td>{units}</td>
                                 <td>₹{unitsPrice.toFixed(2)}</td>
                                 <td>₹{discountedPrice.toFixed(2)}</td>
@@ -1269,6 +1299,7 @@ export default function InvoicesPage() {
                           {Array.from({ length: Math.max(0, 14 - pdfItems.length) }).map((_, i) => (
                             <tr key={`empty-${i}`}>
                               <td>{pdfItems.length + i + 1}</td>
+                              <td>&nbsp;</td>
                               <td>&nbsp;</td>
                               <td>&nbsp;</td>
                               <td>&nbsp;</td>

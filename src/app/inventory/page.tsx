@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +39,12 @@ export default function InventoryPage() {
   const [deletingPart, setDeletingPart] = useState<Part | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedPart, setScannedPart] = useState<Part | null>(null);
+
+  // Add New Part: part code search dropdown (same as main search: prefix*last3, 1st/2nd value)
+  const [filteredPartSuggestions, setFilteredPartSuggestions] = useState<Part[]>([]);
+  const [showPartDropdown, setShowPartDropdown] = useState(false);
+  const [partSelectedFromDropdown, setPartSelectedFromDropdown] = useState(false);
+  const partDropdownRef = useRef<HTMLDivElement>(null);
 
   // Form state
   const [formData, setFormData] = useState<CreatePartData>({
@@ -112,6 +118,43 @@ export default function InventoryPage() {
       setError(err.message || 'Search failed');
     }
   };
+
+  // Part code input in Add New Part: same search (prefix*last3, part code/name/barcode)
+  const handlePartCodeChange = async (value: string) => {
+    setFormData({ ...formData, partCode: value });
+    setPartSelectedFromDropdown(false);
+    if (value.trim() === '') {
+      setFilteredPartSuggestions([]);
+      setShowPartDropdown(false);
+      return;
+    }
+    if (!userData?.companyId) return;
+    try {
+      const results = await searchParts(value.trim(), userData.companyId);
+      setFilteredPartSuggestions(results.slice(0, 50));
+      setShowPartDropdown(results.length > 0);
+    } catch {
+      setFilteredPartSuggestions([]);
+      setShowPartDropdown(false);
+    }
+  };
+
+  const handlePartSelect = (part: Part) => {
+    setFormData({ ...formData, partCode: part.partCode, name: part.name });
+    setPartSelectedFromDropdown(true);
+    setShowPartDropdown(false);
+    setFilteredPartSuggestions([]);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (partDropdownRef.current && !partDropdownRef.current.contains(event.target as Node)) {
+        setShowPartDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleBarcodeScan = async (barcode: string) => {
     try {
@@ -233,6 +276,7 @@ export default function InventoryPage() {
       supplierId: '',
       barcode: '',
     });
+    setPartSelectedFromDropdown(false);
   };
 
   if (loading && parts.length === 0) {
@@ -315,18 +359,35 @@ export default function InventoryPage() {
                 </h2>
                 <form onSubmit={editingPart ? handleEditSubmit : handleCreateSubmit} className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div>
+                    <div className="relative" ref={partDropdownRef}>
                       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Part Code {!editingPart && <span className="text-zinc-500">(Auto-generated if empty)</span>}
+                        Part Code {!editingPart && <span className="text-zinc-500"></span>}
                       </label>
                       <input
                         type="text"
                         value={formData.partCode}
-                        onChange={(e) => setFormData({ ...formData, partCode: e.target.value })}
+                        onChange={(e) => handlePartCodeChange(e.target.value)}
                         className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="PART-000001 or leave empty"
+                        placeholder="Part code, prefix*last3 (e.g. 26*341), or leave empty"
                         disabled={!!editingPart}
+                        onFocus={() => {
+                          if (formData.partCode.trim() && filteredPartSuggestions.length > 0) setShowPartDropdown(true);
+                        }}
                       />
+                      {showPartDropdown && filteredPartSuggestions.length > 0 && !editingPart && (
+                        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 shadow-lg">
+                          {filteredPartSuggestions.map((part) => (
+                            <div
+                              key={part.id}
+                              onClick={() => handlePartSelect(part)}
+                              className="cursor-pointer px-4 py-2 hover:bg-blue-50 dark:hover:bg-zinc-700 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                            >
+                              <div className="font-medium text-black dark:text-zinc-50">{part.partCode}</div>
+                              <div className="text-sm text-zinc-600 dark:text-zinc-400">{part.name || '—'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -338,7 +399,8 @@ export default function InventoryPage() {
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        disabled={partSelectedFromDropdown && !editingPart}
+                        className="mt-1 block w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 text-black dark:text-zinc-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed"
                       />
                     </div>
 

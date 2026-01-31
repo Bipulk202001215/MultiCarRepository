@@ -66,23 +66,6 @@ export default function HomePage() {
           </div>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {hasJobCardPermission && (
-              <Link
-                to="/jobs/board"
-                className="rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 p-6 shadow-xl border border-white/20 dark:border-zinc-700/50 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] transform"
-              >
-                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                  Job Cards
-                </h2>
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
-                  View and manage job cards
-                </p>
-                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 font-semibold">
-                  <span className="text-sm">View Jobs →</span>
-                </div>
-              </Link>
-            )}
-
             {hasInventoryPermission && (
               <Link
                 to="/inventory"
@@ -123,14 +106,6 @@ export default function HomePage() {
                   Quick Actions
                 </h2>
                 <div className="mt-4 space-y-2">
-                  {hasJobCardPermission && (
-                    <Link
-                      to="/jobs/create"
-                      className="block text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                    >
-                      Create Job Card →
-                    </Link>
-                  )}
                   {hasInvoicePermission && (
                     <Link
                       to="/invoices"

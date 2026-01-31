@@ -535,19 +535,21 @@ export default function JobDetailPage() {
                 </select>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - hide Update when status is COMPLETED */}
               <div className="flex gap-4 border-t border-zinc-200 dark:border-zinc-700 pt-6">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSubmit(e, 'DRAFT');
-                  }}
-                  disabled={saving}
-                  className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? 'Updating...' : 'Update'}
-                </button>
+                {status !== 'COMPLETED' && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSubmit(e, 'DRAFT');
+                    }}
+                    disabled={saving}
+                    className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Updating...' : 'Update'}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={(e) => handleSubmit(e, 'SUBMITTED')}

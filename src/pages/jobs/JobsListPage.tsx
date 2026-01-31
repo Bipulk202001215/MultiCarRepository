@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { getJobsByCompanyId } from '@/lib/apiClient';
+import { getJobsByCompanyId, getCompletedJobsByCompanyId } from '@/lib/apiClient';
 import { JobCard } from '@/lib/types';
 import { Link } from 'react-router-dom';
 
@@ -46,69 +46,83 @@ export default function JobsListPage() {
     }
   }, [currentUser, userData, userCompany]);
 
+  const transformApiJobToJobCard = (job: any, companyId: string): JobCard => {
+    const jobDescriptions = job.jobDetailId?.jobDescription || [];
+    const transformServiceType = (type: string): string => {
+      if (!type) return 'Periodic';
+      if (type.toUpperCase() === 'AC') return 'AC';
+      return type.charAt(0) + type.slice(1).toLowerCase();
+    };
+    const transformedJobDescriptions = jobDescriptions
+      .filter((desc: any) => desc.serviceType || desc.description)
+      .map((desc: any) => ({
+        serviceType: transformServiceType(desc.serviceType) as any,
+        description: desc.description || '',
+        assignedMechanicType: desc.assignedMechanicType || '',
+        estimatedTime: desc.estimatedTime || '',
+      }));
+    return {
+      id: job.jobCardId || '',
+      jobNo: job.jobCardId || '',
+      companyId,
+      vehicleNo: job.vehicleNumber || '',
+      customerName: job.customerName || '',
+      mobile: job.mobileNumber || '',
+      kmReading: String(job.kmReading || ''),
+      carMake: job.carMake || '',
+      carModel: job.carModel || '',
+      carYear: job.carYear || undefined,
+      jobDescriptions: transformedJobDescriptions,
+      status: job.status || 'PENDING',
+      createdBy: job.createdBy || currentUser?.id || '',
+      createdAt: job.createdOn ? new Date(job.createdOn) : new Date(),
+      updatedAt: job.updatedOn ? new Date(job.updatedOn) : new Date(),
+    };
+  };
+
   const loadJobs = async () => {
     if (!currentUser) return;
 
     try {
       setLoading(true);
       const companyId = userCompany?.id || userData?.companyId;
-      
+
       if (!companyId) {
         setError('Company ID not found. Please contact administrator.');
         setJobs([]);
         return;
       }
 
-      // Fetch jobs by company ID from API
       const apiJobs = await getJobsByCompanyId(companyId);
-      
-      // Transform API response to JobCard format
-      const transformedJobs: JobCard[] = apiJobs.map((job: any) => {
-        // Extract job descriptions from nested structure: jobDetailId.jobDescription
-        const jobDescriptions = job.jobDetailId?.jobDescription || [];
-        
-        // Transform job descriptions to match JobDescription type
-        // Convert serviceType from uppercase (PERIODIC) to title case (Periodic)
-        const transformServiceType = (type: string): string => {
-          if (!type) return 'Periodic';
-          // Handle special case: AC should stay as AC
-          if (type.toUpperCase() === 'AC') return 'AC';
-          // Convert "PERIODIC" -> "Periodic", "REPAIR" -> "Repair", etc.
-          return type.charAt(0) + type.slice(1).toLowerCase();
-        };
-        
-        const transformedJobDescriptions = jobDescriptions
-          .filter((desc: any) => desc.serviceType || desc.description) // Filter out completely empty entries
-          .map((desc: any) => ({
-            serviceType: transformServiceType(desc.serviceType) as any,
-            description: desc.description || '',
-            assignedMechanicType: desc.assignedMechanicType || '',
-            estimatedTime: desc.estimatedTime || '',
-          }));
-
-        return {
-          id: job.jobCardId || '',
-          jobNo: job.jobCardId || '',
-          companyId: companyId,
-          vehicleNo: job.vehicleNumber || '',
-          customerName: job.customerName || '', // Not present in API response, keeping empty string
-          mobile: job.mobileNumber || '',
-          kmReading: String(job.kmReading || ''),
-          carMake: job.carMake || '',
-          carModel: job.carModel || '',
-          carYear: job.carYear || undefined,
-          jobDescriptions: transformedJobDescriptions,
-          status: job.status || 'PENDING',
-          createdBy: job.createdBy || currentUser.id,
-          createdAt: job.createdOn ? new Date(job.createdOn) : new Date(),
-          updatedAt: job.updatedOn ? new Date(job.updatedOn) : new Date(),
-        };
-      });
-
+      const transformedJobs = apiJobs.map((job: any) => transformApiJobToJobCard(job, companyId));
       setJobs(transformedJobs);
       setError('');
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCompletedJobs = async () => {
+    if (!currentUser) return;
+
+    const companyId = userCompany?.id || userData?.companyId;
+    if (!companyId) {
+      setError('Company ID not found. Please contact administrator.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      const apiJobs = await getCompletedJobsByCompanyId(companyId);
+      const transformedJobs = apiJobs.map((job: any) => transformApiJobToJobCard(job, companyId));
+      setJobs(transformedJobs);
+      setFilterStatus('COMPLETED');
+    } catch (err: any) {
+      setError(err.message || 'Failed to load completed jobs');
       setJobs([]);
     } finally {
       setLoading(false);
@@ -134,7 +148,7 @@ export default function JobsListPage() {
     <DashboardLayout>
       <div className="p-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex items-center justify-between">
+            <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                 My Job Cards
@@ -143,12 +157,21 @@ export default function JobsListPage() {
                 All job cards created by you
               </p>
             </div>
-                <Link
-                  to="/jobs/create"
-                  className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  Create New Job
-                </Link>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={loadCompletedJobs}
+                className="rounded-xl border-2 border-blue-600 dark:border-blue-500 bg-white dark:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-4 py-2.5 text-sm font-semibold transition-all duration-200"
+              >
+                Completed Jobs
+              </button>
+              <Link
+                to="/jobs/create"
+                className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Create New Job
+              </Link>
+            </div>
           </div>
 
           {error && (

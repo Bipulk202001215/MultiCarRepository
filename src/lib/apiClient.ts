@@ -433,6 +433,34 @@ export async function getJobsByCompanyId(companyId: string): Promise<any[]> {
 }
 
 /**
+ * Get completed jobs by company ID
+ * API Endpoint: GET {{api_base}}/jobs/company/{companyId}/completed
+ */
+export async function getCompletedJobsByCompanyId(companyId: string): Promise<any[]> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Fetching completed jobs by company ID:', companyId);
+    console.log('📤 API Endpoint: GET /jobs/company/' + companyId + '/completed');
+  }
+
+  try {
+    const response = await apiRequest<any[]>(`/jobs/company/${companyId}/completed`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Completed jobs API response received:', response);
+    }
+
+    return Array.isArray(response) ? response : [];
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Completed jobs API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
  * Get pending jobs
  * API Endpoint: GET {{api_base}}/jobs/pending
  */

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { getJobsByCompanyId } from '@/lib/apiClient';
+import { getJobsByCompanyId, getCompletedJobsByCompanyId } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCompanyConfig } from '@/lib/companyConfigService';
 
@@ -39,8 +39,13 @@ export default function JobCardViewPage() {
         return;
       }
 
-      const jobs = await getJobsByCompanyId(companyId);
-      const foundJob = jobs.find((j: any) => j.jobCardId === jobId);
+      let jobs = await getJobsByCompanyId(companyId);
+      let foundJob = jobs.find((j: any) => j.jobCardId === jobId);
+      // If not found (e.g. completed jobs), try completed jobs API so view shows all entries prefilled
+      if (!foundJob) {
+        const completedJobs = await getCompletedJobsByCompanyId(companyId);
+        foundJob = completedJobs.find((j: any) => j.jobCardId === jobId);
+      }
 
       if (!foundJob) {
         setError('Job not found');
@@ -91,6 +96,10 @@ export default function JobCardViewPage() {
   const vehicleNumber = job.vehicleNumber || '';
   const kmReading = job.kmReading || '';
   const mobileNumber = job.mobileNumber || '';
+  const customerName = job.customerName || '';
+  const jobNo = job.jobCardId || jobId || '';
+  const jobStatus = job.status || '';
+  const jobCreated = job.createdOn ? new Date(job.createdOn).toLocaleDateString() : '';
 
   const jobDescriptions = job.jobDetailId?.jobDescription || [];
 
@@ -160,16 +169,22 @@ export default function JobCardViewPage() {
           {/* Job Card View */}
           <div className="job-card-view">
             <div className="job-card-container bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm p-10 shadow-2xl border border-white/20 dark:border-zinc-700/50 rounded-2xl">
-              {/* Logo on Left Side */}
-              <div className="mb-0 flex flex-col items-start">
-                <img 
-                  src="/autonation-logo.svg" 
-                  alt="24X7 AutoNation Logo" 
-                  className="h-32 w-auto object-contain"
-                  style={{ maxHeight: '128px' }}
-                />
-                <div className="text-sm text-black font-semibold" style={{ marginTop: '-38px', marginLeft: '10px' }}>
-                  Mobile: {companyConfig?.phone || '86268-16424'}
+              {/* Logo left, Company name & GSTIN right (same alignment) */}
+              <div className="flex justify-between items-start w-full mb-0">
+                <div className="flex flex-col items-start" style={{ marginTop: '-36px' }}>
+                  <img 
+                    src="/autonation-logo.svg" 
+                    alt="24X7 AutoNation Logo" 
+                    className="h-32 w-auto object-contain"
+                    style={{ maxHeight: '128px' }}
+                  />
+                  <div className="text-sm text-black font-semibold" style={{ marginTop: '-38px', marginLeft: '10px' }}>
+                    Mobile: {companyConfig?.phone || '86268-16424'}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end text-right text-black">
+                  <div className="text-lg font-semibold">{companyConfig?.name || '24X7 AutoNation'}</div>
+                  <div className="text-sm mt-1">GSTIN: {companyConfig?.gstin || '02LSNPS6493R1ZC'}</div>
                 </div>
               </div>
 
@@ -178,13 +193,30 @@ export default function JobCardViewPage() {
                 JOB CARD
               </h1>
 
-              {/* Customer and Vehicle Information */}
+              {/* Job No / Status / Created - same as table entries */}
+              {(jobNo || jobStatus || jobCreated) && (
+                <div className="grid grid-cols-3 gap-4 mb-6 text-sm text-black">
+                  {jobNo && <div><span className="font-bold">Job No:</span> {jobNo}</div>}
+                  {jobStatus && <div><span className="font-bold">Status:</span> {jobStatus}</div>}
+                  {jobCreated && <div><span className="font-bold">Created:</span> {jobCreated}</div>}
+                </div>
+              )}
+
+              {/* Customer and Vehicle Information - prefilled as per table */}
               <div className="grid grid-cols-2 gap-8 mb-6">
                 {/* Customer Section */}
                 <div>
                   <div className="bg-blue-900 text-white px-3 py-2 font-bold text-sm uppercase mb-3">
                     CUSTOMER
                   </div>
+                  {customerName && (
+                    <div className="mb-4">
+                      <div className="font-bold text-xs mb-1 text-black">NAME:</div>
+                      <div className="border-b border-black min-h-[20px] pb-1 text-sm text-black">
+                        {customerName}
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-4">
                     <div className="font-bold text-xs mb-1 text-black">CONTACT:</div>
                     <div className="border-b border-black min-h-[20px] pb-1 text-sm text-black">
@@ -234,9 +266,7 @@ export default function JobCardViewPage() {
                   </thead>
                   <tbody>
                     {jobDescriptions && jobDescriptions.length > 0
-                      ? jobDescriptions
-                          .filter((desc: any) => desc.description && desc.description.trim())
-                          .map((desc: any, index: number) => (
+                      ? jobDescriptions.map((desc: any, index: number) => (
                             <tr key={index}>
                               <td className="border border-black p-2 text-xs text-black">
                                 {desc.description || ''}
