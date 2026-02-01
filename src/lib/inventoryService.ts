@@ -81,7 +81,7 @@ export async function createPart(data: CreatePartData, companyId: string, compan
     };
 
     // Call API endpoint
-    const response = await apiRequest<CreatePartResponse>('/inventory/add', {
+    const response = await apiRequest<CreatePartResponse>(`/inventory/${companyId}/add`, {
       method: 'POST',
       body: JSON.stringify(requestData),
     });
@@ -148,7 +148,7 @@ export async function getAllParts(companyId: string): Promise<Part[]> {
   
   try {
     // Fetch from API endpoint
-    const response = await apiRequest<ApiPartResponse[]>('/inventory/partcode', {
+    const response = await apiRequest<ApiPartResponse[]>(`/inventory/${companyId}/partcode`, {
       method: 'GET',
     });
     
@@ -187,7 +187,7 @@ export async function getAlertedParts(companyId: string): Promise<Part[]> {
   
   try {
     // Fetch from API endpoint
-    const response = await apiRequest<ApiPartResponse[]>('/inventory/alerts', {
+    const response = await apiRequest<ApiPartResponse[]>(`/inventory/${companyId}/alerts`, {
       method: 'GET',
     });
     
@@ -230,7 +230,7 @@ export async function searchPartByCode(partCode: string, companyId: string): Pro
   
   try {
     // Fetch from API endpoint
-    const response = await apiRequest<ApiPartResponse>(`/inventory/partcode/${encodeURIComponent(partCode)}`, {
+    const response = await apiRequest<ApiPartResponse>(`/inventory/${companyId}/partcode/${encodeURIComponent(partCode)}`, {
       method: 'GET',
     });
     
