@@ -46,6 +46,8 @@ export default function InvoicesPage() {
   const [jobDetails, setJobDetails] = useState<any>(null);
   const [pdfVehicleNo, setPdfVehicleNo] = useState<string>('');
   const [pdfItems, setPdfItems] = useState<any[]>([]);
+  const [pdfNetCalculationAmount, setPdfNetCalculationAmount] = useState<number | null>(null);
+  const [pdfTotalForTaxableAmount, setPdfTotalForTaxableAmount] = useState<number | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState<any>(null);
 
@@ -533,6 +535,8 @@ export default function InvoicesPage() {
           paymentMode: fullInvoice.paymentMode || editingInvoice.paymentMode,
         });
       }
+      setPdfNetCalculationAmount(fullInvoice.netCalculationAmount ?? null);
+      setPdfTotalForTaxableAmount(fullInvoice.total ?? null);
     } catch (err: any) {
       console.error('Failed to load PDF data:', err);
       // Fallback: try to load job details separately if API fails
@@ -714,6 +718,8 @@ export default function InvoicesPage() {
                               paymentMode: fullInvoice.paymentMode || editingInvoice.paymentMode,
                             });
                           }
+                          setPdfNetCalculationAmount(fullInvoice.netCalculationAmount ?? null);
+                          setPdfTotalForTaxableAmount(fullInvoice.total ?? null);
                           
                           console.log('✅ PDF data loaded successfully');
                         } catch (error: any) {
@@ -1157,7 +1163,11 @@ export default function InvoicesPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowPdfView(false)}
+                      onClick={() => {
+                        setShowPdfView(false);
+                        setPdfNetCalculationAmount(null);
+                        setPdfTotalForTaxableAmount(null);
+                      }}
                       className="rounded-md bg-zinc-200 dark:bg-zinc-700 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
                     >
                       Back
@@ -1219,7 +1229,7 @@ export default function InvoicesPage() {
                         </div>
                         <div className="text-center mb-2">
                           <h1 className="text-3xl font-bold" style={{ fontFamily: 'serif' }}>
-                            {companyConfig?.name || '24X7 AUTO NATION'}
+                            {companyConfig?.name || '24X7 AUTONATION'}
                           </h1>
                         </div>
                         <div className="text-center text-sm mb-4 italic">
@@ -1320,8 +1330,9 @@ export default function InvoicesPage() {
                         const cgst = formData.cgst || 0;
                         const sgst = formData.sgst || 0;
                         const igst = formData.igst || 0;
-                        const total = subtotal + cgst + sgst + igst;
-                        const grandTotal = total;
+                        const computedTotal = subtotal + cgst + sgst + igst;
+                        const grandTotal = pdfNetCalculationAmount ?? computedTotal;
+                        const total = grandTotal;
 
                         return (
                           <div className="flex justify-between mb-4">
@@ -1333,7 +1344,7 @@ export default function InvoicesPage() {
                                 </p>
                               </div>
                               <div className="mt-4 text-xs">
-                                <p className="mb-1"><span className="font-semibold">A/c Name:</span> 24X7 AUTO NATION</p>
+                                <p className="mb-1"><span className="font-semibold">A/c Name:</span> 24X7 AUTONATION</p>
                                 <p className="mb-1"><span className="font-semibold">Our Bank:</span> S.B.I. PANCHRUKHI</p>
                                 <p className="mb-1"><span className="font-semibold">A/No.: No.:</span> 44332175284</p>
                                 <p className="mb-1"><span className="font-semibold">IFSC Code:</span> SBIN0003241</p>
@@ -1346,7 +1357,7 @@ export default function InvoicesPage() {
                               <div className="mb-2">
                                 <div className="flex justify-between mb-1">
                                   <span>Total Taxable Amount</span>
-                                  <span>₹{subtotal.toFixed(2)}</span>
+                                  <span>₹{(pdfTotalForTaxableAmount ?? subtotal).toFixed(2)}</span>
                                 </div>
                                 {igst === 0 ? (
                                   <>
