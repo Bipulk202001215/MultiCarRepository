@@ -229,8 +229,8 @@ export default function CreateJobPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-4xl">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-4xl min-w-0">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">

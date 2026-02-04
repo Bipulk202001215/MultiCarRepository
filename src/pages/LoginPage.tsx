@@ -67,7 +67,7 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="w-full max-w-md space-y-8 relative z-10">
+      <div className="w-full max-w-md space-y-6 sm:space-y-8 relative z-10 px-2 sm:px-0">
         {/* Main Card */}
         <div className="backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 rounded-2xl shadow-2xl p-8 md:p-10 border border-white/20 dark:border-zinc-700/50 transition-all duration-300 hover:shadow-3xl">
           {/* Header */}

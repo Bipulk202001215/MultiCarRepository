@@ -421,11 +421,11 @@ export default function InventoryPage() {
 
   return (
     <DashboardLayout>
-        <div className="p-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 flex items-center justify-between">
+        <div className="p-4 sm:p-6 md:p-8">
+          <div className="mx-auto max-w-7xl min-w-0">
+            <div className="mb-6 sm:mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+                <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-zinc-50">
                   Inventory Management
                 </h1>
                 <p className="mt-2 text-zinc-600 dark:text-zinc-400">
@@ -729,7 +729,7 @@ export default function InventoryPage() {
             )}
 
             {/* Parts List */}
-            <div className="overflow-hidden rounded-lg bg-white dark:bg-zinc-900 shadow">
+            <div className="overflow-x-auto rounded-lg bg-white dark:bg-zinc-900 shadow">
               <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                 <thead className="bg-zinc-50 dark:bg-zinc-800">
                   <tr>

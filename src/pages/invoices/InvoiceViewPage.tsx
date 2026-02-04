@@ -58,8 +58,8 @@ export default function InvoiceViewPage() {
   if (error || !invoice) {
     return (
       <DashboardLayout>
-        <div className="p-8">
-          <div className="mx-auto max-w-4xl">
+        <div className="p-4 sm:p-6 md:p-8">
+          <div className="mx-auto max-w-4xl min-w-0">
             <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm text-red-800 dark:text-red-200">{error || 'Invoice not found'}</p>
             </div>
@@ -77,11 +77,11 @@ export default function InvoiceViewPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-center justify-between">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-6xl min-w-0">
+          <div className="mb-6 sm:mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+              <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-zinc-50">
                 Invoice {invoice.invoiceNo}
               </h1>
               <p className="mt-2 text-zinc-600 dark:text-zinc-400">
@@ -107,10 +107,10 @@ export default function InvoiceViewPage() {
           {showPrint ? (
             <InvoicePrint invoice={invoice} />
           ) : (
-            <div className="rounded-lg bg-white dark:bg-zinc-900 p-8 shadow">
+            <div className="rounded-lg bg-white dark:bg-zinc-900 p-4 sm:p-6 md:p-8 shadow">
               {/* Invoice Header */}
-              <div className="mb-8 border-b border-zinc-200 dark:border-zinc-700 pb-8">
-                <div className="grid grid-cols-2 gap-8">
+              <div className="mb-6 sm:mb-8 border-b border-zinc-200 dark:border-zinc-700 pb-6 sm:pb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                   <div>
                     <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                       Invoice Details
@@ -145,7 +145,7 @@ export default function InvoiceViewPage() {
               </div>
 
               {/* Invoice Items */}
-              <div className="mb-8">
+              <div className="mb-6 sm:mb-8 overflow-x-auto">
                 <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                   <thead className="bg-zinc-50 dark:bg-zinc-800">
                     <tr>
@@ -192,7 +192,7 @@ export default function InvoiceViewPage() {
 
               {/* Invoice Summary */}
               <div className="border-t border-zinc-200 dark:border-zinc-700 pt-8">
-                <div className="ml-auto max-w-md space-y-2">
+                <div className="mt-4 sm:mt-0 sm:ml-auto max-w-md space-y-2">
                   <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400">
                     <span>Subtotal:</span>
                     <span>₹{invoice.subtotal.toFixed(2)}</span>

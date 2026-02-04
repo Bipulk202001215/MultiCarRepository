@@ -74,7 +74,7 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
     }
   };
 
-  const companyName = companyConfig?.name || '24X7 AUTO NATION';
+  const companyName = companyConfig?.name || '24X7 AUTONATION';
   const companyGSTIN = companyConfig?.gstin || '02LSNPS6493R1ZC';
   const companyAddress = companyConfig?.address || 'BALOO P.O. SALIANA TEH. PALAMPUR DISTT. KANGRA (H.P.)';
   const companyPhone = companyConfig?.phone || '(M) 8626816424';
@@ -202,7 +202,7 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
           <div className="mb-2">
             <div className="flex justify-between mb-1">
               <span>Total Taxable Amount</span>
-              <span>₹{invoice.subtotal.toFixed(2)}</span>
+              <span>₹{invoice.total.toFixed(2)}</span>
             </div>
             {invoice.gstType === 'CGST_SGST' ? (
               <>
@@ -221,14 +221,21 @@ export function InvoicePrint({ invoice }: InvoicePrintProps) {
                 <span>₹{invoice.igst.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between mb-1 border-t border-black pt-1">
-              <span className="font-semibold">Total</span>
-              <span className="font-semibold">₹{invoice.total.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between border-t-2 border-black pt-1 mt-2">
-              <span className="font-bold">Grand Total</span>
-              <span className="font-bold">₹{invoice.total.toFixed(2)}</span>
-            </div>
+            {(() => {
+              const grandTotal = (invoice as { netCalculationAmount?: number }).netCalculationAmount ?? invoice.total;
+              return (
+                <>
+                  <div className="flex justify-between mb-1 border-t border-black pt-1">
+                    <span className="font-semibold">Total</span>
+                    <span className="font-semibold">₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t-2 border-black pt-1 mt-2">
+                    <span className="font-bold">Grand Total</span>
+                    <span className="font-bold">₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>

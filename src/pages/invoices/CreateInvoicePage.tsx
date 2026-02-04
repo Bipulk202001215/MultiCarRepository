@@ -150,10 +150,10 @@ export default function CreateInvoicePage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-6xl min-w-0">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-zinc-50">
               Create Invoice
             </h1>
             <p className="mt-2 text-zinc-600 dark:text-zinc-400">

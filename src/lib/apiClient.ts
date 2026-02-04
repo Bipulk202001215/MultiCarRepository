@@ -449,6 +449,34 @@ export async function updateJobApi(jobCardId: string, jobData: any): Promise<any
 }
 
 /**
+ * Complete job by jobCardId
+ * API Endpoint: GET {{api_base}}/jobs/{jobCardId}/complete
+ */
+export async function completeJobApi(jobCardId: string): Promise<any> {
+  if (import.meta.env.DEV) {
+    console.log('📤 Completing job via API:', jobCardId);
+    console.log('📤 API Endpoint: GET /jobs/' + jobCardId + '/complete');
+  }
+
+  try {
+    const response = await apiRequest<any>(`/jobs/${jobCardId}/complete`, {
+      method: 'GET',
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('✅ Job complete API response received:', response);
+    }
+
+    return response;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.error('❌ Job complete API error:', error);
+    }
+    throw error;
+  }
+}
+
+/**
  * Get jobs by company ID
  * API Endpoint: GET {{api_base}}/jobs/company/{companyId}
  */
