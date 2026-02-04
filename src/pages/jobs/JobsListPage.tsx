@@ -162,18 +162,18 @@ export default function JobsListPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-7xl">
-            <div className="mb-8 flex items-center justify-between">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-7xl min-w-0">
+            <div className="mb-6 sm:mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                 My Job Cards
               </h1>
               <p className="mt-2 text-zinc-600 dark:text-zinc-400">
                 All job cards created by you
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={loadCompletedJobs}
@@ -222,7 +222,7 @@ export default function JobsListPage() {
           </div>
 
           {/* Jobs Table */}
-          <div className="overflow-hidden rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 shadow-2xl border border-white/20 dark:border-zinc-700/50">
+          <div className="overflow-x-auto rounded-2xl backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 shadow-2xl border border-white/20 dark:border-zinc-700/50">
             <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                   <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700">
                 <tr>

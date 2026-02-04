@@ -10,8 +10,8 @@ export default function JobDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-4xl">
+<div className="p-4 sm:p-6 md:p-8">
+      <div className="mx-auto max-w-4xl min-w-0">
           <h1 className="text-3xl font-bold text-black dark:text-zinc-50 mb-4">
             Job Detail - {jobId}
           </h1>

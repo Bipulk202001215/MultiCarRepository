@@ -104,10 +104,10 @@ export default function JobsBoardPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+<div className="p-4 sm:p-6 md:p-8">
+      <div className="mx-auto max-w-7xl min-w-0">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-zinc-50">
               Status Board
             </h1>
             <p className="mt-2 text-zinc-600 dark:text-zinc-400">
@@ -144,7 +144,7 @@ export default function JobsBoardPage() {
                   </div>
 
                   {/* Column Content */}
-                  <div className="flex-1 space-y-3 p-4 overflow-y-auto max-h-[calc(100vh-250px)]">
+                  <div className="flex-1 space-y-3 p-4 overflow-y-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-250px)]">
                     {columnJobs.length === 0 ? (
                       <div className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
                         No jobs

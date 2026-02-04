@@ -135,11 +135,10 @@ export default function JobCardViewPage() {
         }
       ` }} />
       
-      <div className="p-8">
-        <div className="mx-auto max-w-4xl">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-4xl min-w-0">
           {/* Action Buttons - Hidden when printing */}
-          <div className="flex style={{ marginBottom: '10px', marginLeft: '10px' }}
-          no-print">
+          <div className="flex flex-wrap gap-2 mb-4 no-print">
             <button
               onClick={handlePrint}
               className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
@@ -168,7 +167,7 @@ export default function JobCardViewPage() {
 
           {/* Job Card View */}
           <div className="job-card-view">
-            <div className="job-card-container bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm p-10 shadow-2xl border border-white/20 dark:border-zinc-700/50 rounded-2xl">
+            <div className="job-card-container bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm p-4 sm:p-6 md:p-10 shadow-2xl border border-white/20 dark:border-zinc-700/50 rounded-2xl">
               {/* Logo left, Company name & GSTIN right (same alignment) */}
               <div className="flex justify-between items-start w-full mb-0">
                 <div className="flex flex-col items-start" style={{ marginTop: '-36px' }}>
@@ -189,13 +188,13 @@ export default function JobCardViewPage() {
               </div>
 
               {/* Title */}
-              <h1 className="text-center text-3xl font-bold uppercase underline mb-8 text-black -mt-4">
+              <h1 className="text-center text-2xl sm:text-3xl font-bold uppercase underline mb-6 sm:mb-8 text-black -mt-4">
                 JOB CARD
               </h1>
 
               {/* Job No / Status / Created - same as table entries */}
               {(jobNo || jobStatus || jobCreated) && (
-                <div className="grid grid-cols-3 gap-4 mb-6 text-sm text-black">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 text-sm text-black">
                   {jobNo && <div><span className="font-bold">Job No:</span> {jobNo}</div>}
                   {jobStatus && <div><span className="font-bold">Status:</span> {jobStatus}</div>}
                   {jobCreated && <div><span className="font-bold">Created:</span> {jobCreated}</div>}
@@ -203,7 +202,7 @@ export default function JobCardViewPage() {
               )}
 
               {/* Customer and Vehicle Information - prefilled as per table */}
-              <div className="grid grid-cols-2 gap-8 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-6">
                 {/* Customer Section */}
                 <div>
                   <div className="bg-blue-900 text-white px-3 py-2 font-bold text-sm uppercase mb-3">

@@ -588,18 +588,18 @@ export default function InvoicesPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-center justify-between">
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-6xl min-w-0">
+          <div className="mb-6 sm:mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
+              <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-zinc-50">
                 Invoice Management
               </h1>
               <p className="mt-2 text-zinc-600 dark:text-zinc-400">
                 {editingInvoice ? 'Edit Invoice' : 'Create a new invoice'}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {viewMode === 'table' ? (
                 <button
                   type="button"
@@ -763,7 +763,7 @@ export default function InvoicesPage() {
           )}
 
           {viewMode === 'table' ? (
-            <div className="overflow-hidden rounded-lg bg-white dark:bg-zinc-900 shadow">
+            <div className="overflow-x-auto rounded-lg bg-white dark:bg-zinc-900 shadow">
               {loadingInvoices ? (
                 <div className="p-12 text-center text-zinc-600 dark:text-zinc-400">
                   Loading invoices...
@@ -989,7 +989,7 @@ export default function InvoicesPage() {
 
               {/* Items List */}
               {invoiceItems.length > 0 ? (
-                <div>
+                <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                     <thead className="bg-zinc-50 dark:bg-zinc-800">
                       <tr>
@@ -1148,12 +1148,12 @@ export default function InvoicesPage() {
 
           {/* PDF View Modal */}
           {showPdfView && editingInvoice && (
-            <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4">
+              <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto mx-2 sm:mx-0">
                 {/* PDF Header with Buttons */}
-                <div className="sticky top-0 bg-white border-b border-zinc-200 p-4 flex items-center justify-between z-10 no-print">
-                  <h2 className="text-xl font-semibold text-black">Invoice PDF</h2>
-                  <div className="flex gap-3">
+                <div className="sticky top-0 bg-white border-b border-zinc-200 p-3 sm:p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-10 no-print">
+                  <h2 className="text-lg sm:text-xl font-semibold text-black">Invoice PDF</h2>
+                  <div className="flex gap-2 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => window.print()}

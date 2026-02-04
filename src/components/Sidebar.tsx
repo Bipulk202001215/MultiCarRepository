@@ -62,7 +62,12 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { userRole, userData, userCompany, logout, hasPermission, userRoles, userPermissions, currentUser, isSuperAdmin } = useAuth();
@@ -150,20 +155,32 @@ export function Sidebar() {
     },
   ].filter(section => section.items.length > 0); // Only show sections with items
 
-  return (
-    <div className="flex h-screen w-64 flex-col bg-gradient-to-b from-blue-600 via-blue-700 to-indigo-800 text-white shadow-2xl">
-      <div className="flex h-16 items-center border-b border-blue-500/30 px-6 bg-blue-600/50 backdrop-blur-sm">
-        <div className="flex-1">
-          <h1 className="text-xl font-extrabold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">Multi Car Repair</h1>
+  const sidebarContent = (
+    <div className="flex h-full w-64 flex-col bg-gradient-to-b from-blue-600 via-blue-700 to-indigo-800 text-white shadow-2xl">
+      <div className="flex h-14 min-h-14 shrink-0 items-center justify-between border-b border-blue-500/30 px-4 sm:px-6 bg-blue-600/50 backdrop-blur-sm">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg sm:text-xl font-extrabold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent truncate">Multi Car Repair</h1>
           {userCompany && (
-            <p className="text-xs text-blue-100 mt-1 truncate font-medium" title={userCompany.name}>
+            <p className="text-xs text-blue-100 mt-0.5 truncate font-medium" title={userCompany.name}>
               {userCompany.name}
             </p>
           )}
         </div>
+        {onMobileClose && (
+          <button
+            type="button"
+            onClick={onMobileClose}
+            className="md:hidden p-2 rounded-lg text-white/90 hover:bg-white/10"
+            aria-label="Close menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-4 sm:py-6">
         <nav className="space-y-2">
           {sections.map((section) => (
             <div key={section.title} className="space-y-2">
@@ -173,13 +190,14 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     to={item.href}
-                    className={`flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                    onClick={onMobileClose}
+                    className={`flex items-center rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-sm font-semibold transition-all duration-200 ${
                       isActive
-                        ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30 transform scale-105'
+                        ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
                         : 'text-blue-100 hover:bg-white/10 hover:text-white hover:shadow-md hover:backdrop-blur-sm'
                     }`}
                   >
-                    <span>{item.label}</span>
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 );
               })}
@@ -188,9 +206,9 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="border-t border-blue-500/30 p-4 bg-blue-600/30 backdrop-blur-sm">
+      <div className="border-t border-blue-500/30 p-3 sm:p-4 bg-blue-600/30 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-white/20 to-white/10 text-white text-sm font-bold shadow-lg border border-white/30">
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white/20 to-white/10 text-white text-sm font-bold shadow-lg border border-white/30">
             {(userData?.displayName || 'U')[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -217,6 +235,27 @@ export function Sidebar() {
         </button>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Mobile backdrop */}
+      {onMobileClose && (
+        <div
+          className={`fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden ${mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+          onClick={onMobileClose}
+          aria-hidden="true"
+        />
+      )}
+      {/* Sidebar: drawer on mobile, static on md+ */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 h-screen w-64 transform transition-transform duration-200 ease-out md:relative md:translate-x-0 md:inset-auto ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebarContent}
+      </div>
+    </>
   );
 }
 
